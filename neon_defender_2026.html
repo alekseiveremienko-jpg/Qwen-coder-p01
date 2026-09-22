@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Defender 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Dashboard Panel */
+        .dashboard-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(10, 10, 30, 0.95) 0%, rgba(20, 20, 50, 0.8) 100%);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(100, 200, 255, 0.2);
+        }
+
+        .dashboard-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-left {
+            flex: 1;
+            justify-content: flex-start;
+        }
+
+        .dashboard-center {
+            flex: 2;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .dashboard-right {
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        .btn-desktop {
+            border-radius: 8px;
+            padding: 8px 16px;
+        }
+
+        .center-info {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+        }
+
+        /* Game Info Panel */
+        .game-info-panel {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(20, 20, 50, 0.8) 0%, rgba(10, 10, 30, 0.7) 100%);
+            backdrop-filter: blur(5px);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 999;
+            border-bottom: 1px solid rgba(100, 200, 255, 0.15);
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .resource-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+        }
+
+        /* Mobile Controls */
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1001;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn-small {
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            position: absolute;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a3a 0%, #2a2a5a 100%);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            color: white;
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #4a90e2;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .dashboard-panel {
+                height: 50px;
+                padding: 0 10px;
+            }
+
+            .center-info {
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .btn-icon {
+                width: 30px;
+                height: 30px;
+            }
+
+            .game-info-panel {
+                top: 50px;
+                padding: 8px 10px;
+                gap: 10px;
+            }
+
+            .resource-item {
+                font-size: 12px;
+            }
+
+            .mobile-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .control-btn-small {
+                position: static;
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-controls {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .btn-desktop {
+                border-radius: 50%;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Panel -->
+    <div class="dashboard-panel">
+        <div class="dashboard-section dashboard-left">
+            <button class="btn btn-icon" id="profileBtn">👤</button>
+            <button class="btn btn-icon btn-small" id="shareBtn">🔗</button>
+        </div>
+        <div class="dashboard-section dashboard-center">
+            <div class="center-info" id="centerInfo">ВРЕМЯ: 00:00</div>
+        </div>
+        <div class="dashboard-section dashboard-right">
+            <button class="btn btn-icon" id="soundBtn">🔊</button>
+            <button class="btn btn-icon" id="fullscreenBtn">⛶</button>
+            <button class="btn btn-icon" id="restartBtn">🔄</button>
+        </div>
+    </div>
+
+    <!-- Game Info Panel -->
+    <div class="game-info-panel">
+        <div class="resource-item">
+            <div class="resource-icon"></div>
+            <span id="scoreDisplay">Очки: 0</span>
+        </div>
+        <div class="resource-item">
+            <div class="resource-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);"></div>
+            <span id="healthDisplay">Здоровье: 100%</span>
+        </div>
+        <div class="resource-item">
+            <div class="resource-icon" style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);"></div>
+            <span id="rocketsDisplay">Ракет избегано: 0</span>
+        </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div class="mobile-controls" id="mobileControls">
+        <div class="control-btn" id="rotateLeftBtn">◄</div>
+        <div class="control-btn control-btn-small" id="thrustBtn">▲</div>
+        <div class="control-btn" id="rotateRightBtn">►</div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <h2>Профиль игрока</h2>
+            <div class="stat-row">
+                <span>Игровая валюта:</span>
+                <span id="currencyStat">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Лучший счет:</span>
+                <span id="bestScoreStat">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Всего игр:</span>
+                <span id="gamesPlayedStat">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Статус сохранения:</span>
+                <span id="saveStatusStat">Локальное</span>
+            </div>
+            <div class="stat-row">
+                <span>Последнее сохранение:</span>
+                <span id="lastSaveStat">-</span>
+            </div>
+            <button class="btn close-btn" id="closeProfileBtn">Закрыть</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // Game State
+        const gameState = {
+            score: 0,
+            health: 100,
+            rocketsAvoided: 0,
+            gameTime: 0,
+            isPaused: false,
+            isGameOver: false,
+            currency: 0,
+            bestScore: 0,
+            gamesPlayed: 0,
+            lastSaveTime: null,
+            saveType: 'local'
+        };
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game Constants
+        const WORLD_SIZE = 4000;
+        const GRID_SIZE = 100;
+        const BASE_ZOOM = 1.0;
+        const MIN_ZOOM = 0.55;
+        const MAX_ZOOM = 1.0;
+
+        // Adaptive Zoom
+        let currentZoom = 1.0;
+        let targetZoom = 1.0;
+        let speedZoomOffset = 0;
+
+        function calculateAdaptiveZoom() {
+            const screenArea = canvas.width * canvas.height;
+            const referenceArea = 1920 * 1080; // PC reference
+            const areaRatio = screenArea / referenceArea;
+            const zoomByArea = Math.sqrt(areaRatio);
+            
+            targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomByArea));
+            
+            // Smooth zoom transition
+            currentZoom += (targetZoom + speedZoomOffset - currentZoom) * 0.05;
+        }
+
+        // Camera
+        const camera = {
+            x: 0,
+            y: 0,
+            velocityX: 0,
+            velocityY: 0
+        };
+
+        // Player Ship
+        const player = {
+            x: WORLD_SIZE / 2,
+            y: WORLD_SIZE / 2,
+            vx: 0,
+            vy: 0,
+            angle: 0,
+            angularVelocity: 0,
+            maxSpeed: 8,
+            acceleration: 0.15,
+            friction: 0.98,
+            turnSpeed: 0.04,
+            turnRadius: 150, // Circle length for 180° turn
+            width: 40,
+            height: 60,
+            health: 100,
+            thrusting: false,
+            rotatingLeft: false,
+            rotatingRight: false
+        };
+
+        // Game Objects
+        let rockets = [];
+        let flybyRockets = [];
+        let asteroids = [];
+        let particles = [];
+        let warnings = [];
+
+        // Input Handling
+        const keys = {};
+        const touchControls = {
+            left: false,
+            right: false,
+            thrust: false
+        };
+
+        // Keyboard
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'KeyP') gameState.isPaused = !gameState.isPaused;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Touch Controls
+        document.getElementById('rotateLeftBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.left = true;
+        });
+        document.getElementById('rotateLeftBtn').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.left = false;
+        });
+
+        document.getElementById('rotateRightBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.right = true;
+        });
+        document.getElementById('rotateRightBtn').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.right = false;
+        });
+
+        document.getElementById('thrustBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.thrust = true;
+        });
+        document.getElementById('thrustBtn').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.thrust = false;
+        });
+
+        // Mouse/Touch for desktop rotation
+        let mouseX = 0, mouseY = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            if (window.innerWidth > 768) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            }
+        });
+
+        // Procedural Texture Generation
+        function createShipTexture() {
+            const offscreen = document.createElement('canvas');
+            offscreen.width = 100;
+            offscreen.height = 100;
+            const offCtx = offscreen.getContext('2d');
+
+            // Glow effect
+            const gradient = offCtx.createRadialGradient(50, 50, 0, 50, 50, 50);
+            gradient.addColorStop(0, 'rgba(100, 200, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(50, 100, 200, 0.2)');
+            offCtx.fillStyle = gradient;
+            offCtx.fillRect(0, 0, 100, 100);
+
+            // Ship body
+            offCtx.fillStyle = '#4a90e2';
+            offCtx.beginPath();
+            offCtx.moveTo(50, 10);
+            offCtx.quadraticCurveTo(70, 40, 60, 80);
+            offCtx.quadraticCurveTo(50, 90, 40, 80);
+            offCtx.quadraticCurveTo(30, 40, 50, 10);
+            offCtx.fill();
+
+            // Cockpit (rounded, not sharp)
+            offCtx.fillStyle = '#87ceeb';
+            offCtx.beginPath();
+            offCtx.arc(50, 45, 12, 0, Math.PI * 2);
+            offCtx.fill();
+
+            // Engine glow
+            offCtx.fillStyle = '#ff6b6b';
+            offCtx.beginPath();
+            offCtx.moveTo(45, 80);
+            offCtx.lineTo(55, 80);
+            offCtx.lineTo(50, 95);
+            offCtx.fill();
+
+            return offscreen;
+        }
+
+        const shipTexture = createShipTexture();
+
+        // Procedural Asteroid Generation
+        function createAsteroid(x, y, size) {
+            const points = [];
+            const numPoints = 8 + Math.floor(Math.random() * 5);
+            const baseRadius = size * (0.8 + Math.random() * 0.4);
+
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * Math.PI * 2;
+                const radius = baseRadius * (0.7 + Math.random() * 0.6);
+                points.push({
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius
+                });
+            }
+
+            // Craters in shade of main color
+            const craters = [];
+            const numCraters = Math.floor(size / 15);
+            for (let i = 0; i < numCraters; i++) {
+                craters.push({
+                    x: (Math.random() - 0.5) * size * 1.2,
+                    y: (Math.random() - 0.5) * size * 1.2,
+                    radius: 3 + Math.random() * 8
+                });
+            }
+
+            return {
+                x, y, size,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                points,
+                craters,
+                angle: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.02
+            };
+        }
+
+        // Initialize Asteroids
+        function initAsteroids() {
+            asteroids = [];
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * WORLD_SIZE;
+                const y = Math.random() * WORLD_SIZE;
+                const size = 20 + Math.random() * 40;
+                // Don't spawn too close to player
+                if (Math.hypot(x - player.x, y - player.y) > 300) {
+                    asteroids.push(createAsteroid(x, y, size));
+                }
+            }
+        }
+
+        // Rocket Class (Hunter)
+        class HunterRocket {
+            constructor(x, y, targetX, targetY) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 3.5; // 25% slower than player max
+                this.maxSpeed = this.speed;
+                this.turnRate = 0.03;
+                this.angle = Math.atan2(targetY - y, targetX - x);
+                this.trail = [];
+                this.maxTrailLength = 50;
+                this.life = 600; // frames
+                this.smokeTimer = 400; // start smoking when life < this
+                this.radius = 8;
+                this.active = true;
+            }
+
+            update(targetX, targetY) {
+                // Calculate desired direction to target
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const desiredAngle = Math.atan2(dy, dx);
+
+                // Smooth turning with physics (inertia)
+                let angleDiff = desiredAngle - this.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                // Limit turn rate (physics-based turning)
+                const turnAmount = Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
+                this.angle += turnAmount;
+
+                // Accelerate in current direction
+                this.vx += Math.cos(this.angle) * 0.15;
+                this.vy += Math.sin(this.angle) * 0.15;
+
+                // Apply drag and limit speed
+                const speed = Math.hypot(this.vx, this.vy);
+                if (speed > this.maxSpeed) {
+                    this.vx = (this.vx / speed) * this.maxSpeed;
+                    this.vy = (this.vy / speed) * this.maxSpeed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Add trail point
+                this.trail.push({ x: this.x, y: this.y, alpha: 1.0 });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+
+                // Fade trail
+                for (let i = 0; i < this.trail.length; i++) {
+                    this.trail[i].alpha -= 0.02;
+                }
+
+                // Smoke when life is low
+                if (this.life < this.smokeTimer && this.life % 5 === 0) {
+                    particles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        life: 30,
+                        maxLife: 30,
+                        size: 3 + Math.random() * 3,
+                        color: `rgba(100, 100, 100,`
+                    });
+                }
+
+                this.life--;
+                if (this.life <= 0) {
+                    this.explode();
+                }
+            }
+
+            explode() {
+                this.active = false;
+                // Create explosion particles
+                for (let i = 0; i < 20; i++) {
+                    particles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 40,
+                        maxLife: 40,
+                        size: 2 + Math.random() * 4,
+                        color: `rgba(255, ${100 + Math.random() * 155}, 0,`
+                    });
+                }
+            }
+
+            draw(ctx, zoom) {
+                // Draw smooth trail
+                if (this.trail.length > 1) {
+                    ctx.save();
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    
+                    for (let i = 1; i < this.trail.length; i++) {
+                        const t = this.trail[i];
+                        const prevT = this.trail[i - 1];
+                        const alpha = t.alpha * 0.6;
+                        const thickness = (i / this.trail.length) * 6 * zoom;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(prevT.x * zoom, prevT.y * zoom);
+                        ctx.lineTo(t.x * zoom, t.y * zoom);
+                        ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
+                        ctx.lineWidth = thickness;
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // Draw torpedo-like rocket
+                ctx.save();
+                ctx.translate(this.x * zoom, this.y * zoom);
+                ctx.rotate(this.angle);
+
+                // Body
+                ctx.fillStyle = '#ff4500';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 12 * zoom, 4 * zoom, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Nose cone
+                ctx.fillStyle = '#ff6347';
+                ctx.beginPath();
+                ctx.moveTo(8 * zoom, 0);
+                ctx.quadraticCurveTo(14 * zoom, 0, 8 * zoom, -3 * zoom);
+                ctx.quadraticCurveTo(14 * zoom, 0, 8 * zoom, 3 * zoom);
+                ctx.fill();
+
+                // Fins
+                ctx.fillStyle = '#cd3700';
+                ctx.beginPath();
+                ctx.moveTo(-8 * zoom, 0);
+                ctx.lineTo(-12 * zoom, -5 * zoom);
+                ctx.lineTo(-6 * zoom, -3 * zoom);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(-8 * zoom, 0);
+                ctx.lineTo(-12 * zoom, 5 * zoom);
+                ctx.lineTo(-6 * zoom, 3 * zoom);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Flyby Rocket Class
+        class FlybyRocket {
+            constructor(x, y, angle) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(angle) * 6;
+                this.vy = Math.sin(angle) * 6;
+                this.angle = angle;
+                this.trail = [];
+                this.maxTrailLength = 30;
+                this.active = true;
+                this.radius = 6;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+
+                // Deactivate if out of world
+                if (this.x < -100 || this.x > WORLD_SIZE + 100 || 
+                    this.y < -100 || this.y > WORLD_SIZE + 100) {
+                    this.active = false;
+                }
+            }
+
+            explode() {
+                this.active = false;
+                for (let i = 0; i < 15; i++) {
+                    particles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 30,
+                        maxLife: 30,
+                        size: 2 + Math.random() * 3,
+                        color: `rgba(255, 150, 50,`
+                    });
+                }
+            }
+
+            draw(ctx, zoom) {
+                // Draw trail
+                if (this.trail.length > 1) {
+                    ctx.save();
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    
+                    for (let i = 1; i < this.trail.length; i++) {
+                        const t = this.trail[i];
+                        const prevT = this.trail[i - 1];
+                        const alpha = 1 - (i / this.trail.length);
+                        const thickness = (i / this.trail.length) * 4 * zoom;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(prevT.x * zoom, prevT.y * zoom);
+                        ctx.lineTo(t.x * zoom, t.y * zoom);
+                        ctx.strokeStyle = `rgba(255, 150, 50, ${alpha})`;
+                        ctx.lineWidth = thickness;
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // Draw small torpedo
+                ctx.save();
+                ctx.translate(this.x * zoom, this.y * zoom);
+                ctx.rotate(this.angle);
+
+                ctx.fillStyle = '#ffa500';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 8 * zoom, 3 * zoom, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Spawn Hunter Rockets
+        function spawnHunterRocket() {
+            if (gameState.isPaused || gameState.isGameOver) return;
+
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            const buffer = 150 / currentZoom; // Outside visible area
+
+            switch(side) {
+                case 0: // Top
+                    x = player.x + (Math.random() - 0.5) * 400;
+                    y = player.y - buffer;
+                    break;
+                case 1: // Right
+                    x = player.x + buffer;
+                    y = player.y + (Math.random() - 0.5) * 400;
+                    break;
+                case 2: // Bottom
+                    x = player.x + (Math.random() - 0.5) * 400;
+                    y = player.y + buffer;
+                    break;
+                case 3: // Left
+                    x = player.x - buffer;
+                    y = player.y + (Math.random() - 0.5) * 400;
+                    break;
+            }
+
+            rockets.push(new HunterRocket(x, y, player.x, player.y));
+        }
+
+        // Spawn Flyby Rockets
+        function spawnFlybyRockets() {
+            if (gameState.isPaused || gameState.isGameOver) return;
+
+            const count = 1 + Math.floor(Math.random() * 4);
+            const side = Math.floor(Math.random() * 4);
+            const buffer = 200 / currentZoom;
+
+            let startX, startY, angle;
+
+            switch(side) {
+                case 0: // Top
+                    startX = player.x + (Math.random() - 0.5) * 600;
+                    startY = player.y - buffer;
+                    angle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+                    break;
+                case 1: // Right
+                    startX = player.x + buffer;
+                    startY = player.y + (Math.random() - 0.5) * 600;
+                    angle = Math.PI + (Math.random() - 0.5) * 0.5;
+                    break;
+                case 2: // Bottom
+                    startX = player.x + (Math.random() - 0.5) * 600;
+                    startY = player.y + buffer;
+                    angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+                    break;
+                case 3: // Left
+                    startX = player.x - buffer;
+                    startY = player.y + (Math.random() - 0.5) * 600;
+                    angle = 0 + (Math.random() - 0.5) * 0.5;
+                    break;
+            }
+
+            // Show warning
+            warnings.push({
+                x: startX,
+                y: startY,
+                side: side,
+                timer: 120,
+                type: 'flyby'
+            });
+
+            // Spawn after delay
+            setTimeout(() => {
+                for (let i = 0; i < count; i++) {
+                    const offsetX = (Math.random() - 0.5) * 50;
+                    const offsetY = (Math.random() - 0.5) * 50;
+                    flybyRockets.push(new FlybyRocket(startX + offsetX, startY + offsetY, angle));
+                }
+            }, 2000);
+        }
+
+        // Collision Detection
+        function checkCollisions() {
+            const playerRadius = 20;
+
+            // Player vs Asteroids
+            for (const asteroid of asteroids) {
+                const dx = player.x - asteroid.x;
+                const dy = player.y - asteroid.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < playerRadius + asteroid.size) {
+                    // Bounce off asteroid
+                    const angle = Math.atan2(dy, dx);
+                    const pushback = 5;
+                    player.vx += Math.cos(angle) * pushback;
+                    player.vy += Math.sin(angle) * pushback;
+                    
+                    gameState.health -= 10;
+                    updateUI();
+                    
+                    if (gameState.health <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
+            // Player vs Hunter Rockets
+            for (const rocket of rockets) {
+                if (!rocket.active) continue;
+                
+                const dx = player.x - rocket.x;
+                const dy = player.y - rocket.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < playerRadius + rocket.radius) {
+                    rocket.explode();
+                    gameState.health -= 25;
+                    updateUI();
+                    
+                    if (gameState.health <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
+            // Player vs Flyby Rockets
+            for (const rocket of flybyRockets) {
+                if (!rocket.active) continue;
+                
+                const dx = player.x - rocket.x;
+                const dy = player.y - rocket.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < playerRadius + rocket.radius) {
+                    rocket.explode();
+                    gameState.health -= 20;
+                    updateUI();
+                    
+                    if (gameState.health <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
+            // Rockets vs Asteroids (split asteroids)
+            for (const rocket of [...rockets, ...flybyRockets]) {
+                if (!rocket.active) continue;
+
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    const asteroid = asteroids[i];
+                    const dx = rocket.x - asteroid.x;
+                    const dy = rocket.y - asteroid.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < rocket.radius + asteroid.size) {
+                        rocket.explode();
+                        
+                        // Split asteroid if large enough
+                        if (asteroid.size > 25) {
+                            const newSize = asteroid.size * 0.6;
+                            for (let j = 0; j < 2; j++) {
+                                const newAsteroid = createAsteroid(
+                                    asteroid.x + (Math.random() - 0.5) * 30,
+                                    asteroid.y + (Math.random() - 0.5) * 30,
+                                    newSize
+                                );
+                                newAsteroid.vx = asteroid.vx + (Math.random() - 0.5) * 2;
+                                newAsteroid.vy = asteroid.vy + (Math.random() - 0.5) * 2;
+                                asteroids.push(newAsteroid);
+                            }
+                        } else {
+                            // Small asteroid becomes dust
+                            for (let j = 0; j < 8; j++) {
+                                particles.push({
+                                    x: asteroid.x,
+                                    y: asteroid.y,
+                                    vx: (Math.random() - 0.5) * 3,
+                                    vy: (Math.random() - 0.5) * 3,
+                                    life: 20,
+                                    maxLife: 20,
+                                    size: 2 + Math.random() * 3,
+                                    color: 'rgba(150, 150, 150,'
+                                });
+                            }
+                        }
+                        
+                        asteroids.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+
+            // Rocket vs Rocket
+            for (let i = 0; i < rockets.length; i++) {
+                for (let j = i + 1; j < rockets.length; j++) {
+                    const r1 = rockets[i];
+                    const r2 = rockets[j];
+                    if (!r1.active || !r2.active) continue;
+
+                    const dx = r1.x - r2.x;
+                    const dy = r1.y - r2.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < r1.radius + r2.radius) {
+                        r1.explode();
+                        r2.explode();
+                    }
+                }
+            }
+
+            // Asteroid vs Asteroid (repel)
+            for (let i = 0; i < asteroids.length; i++) {
+                for (let j = i + 1; j < asteroids.length; j++) {
+                    const a1 = asteroids[i];
+                    const a2 = asteroids[j];
+                    
+                    const dx = a2.x - a1.x;
+                    const dy = a2.y - a1.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = a1.size + a2.size;
+
+                    if (dist < minDist && dist > 0) {
+                        const overlap = minDist - dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        
+                        a1.x -= nx * overlap * 0.5;
+                        a1.y -= ny * overlap * 0.5;
+                        a2.x += nx * overlap * 0.5;
+                        a2.y += ny * overlap * 0.5;
+
+                        // Exchange some momentum
+                        const dvx = a1.vx - a2.vx;
+                        const dvy = a1.vy - a2.vy;
+                        a1.vx -= dvx * 0.1;
+                        a1.vy -= dvy * 0.1;
+                        a2.vx += dvx * 0.1;
+                        a2.vy += dvy * 0.1;
+                    }
+                }
+            }
+        }
+
+        // Update Player
+        function updatePlayer() {
+            // Rotation input
+            let rotateLeft = keys['KeyA'] || keys['ArrowLeft'] || touchControls.left;
+            let rotateRight = keys['KeyD'] || keys['ArrowRight'] || touchControls.right;
+            let thrust = keys['KeyW'] || keys['ArrowUp'] || touchControls.thrust;
+
+            // Mouse control on desktop
+            if (window.innerWidth > 768 && !rotateLeft && !rotateRight) {
+                const screenX = player.x * currentZoom - camera.x * currentZoom + canvas.width / 2;
+                const screenY = player.y * currentZoom - camera.y * currentZoom + canvas.height / 2;
+                const dx = mouseX - screenX;
+                const dy = mouseY - screenY;
+                const targetAngle = Math.atan2(dy, dx);
+                
+                let angleDiff = targetAngle - player.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                
+                if (Math.abs(angleDiff) > 0.05) {
+                    player.angularVelocity = Math.sign(angleDiff) * player.turnSpeed;
+                } else {
+                    player.angularVelocity = 0;
+                }
+            } else {
+                if (rotateLeft) {
+                    player.angularVelocity = -player.turnSpeed;
+                } else if (rotateRight) {
+                    player.angularVelocity = player.turnSpeed;
+                } else {
+                    player.angularVelocity *= 0.9;
+                }
+            }
+
+            player.angle += player.angularVelocity;
+
+            // Thrust
+            if (thrust) {
+                player.vx += Math.cos(player.angle) * player.acceleration;
+                player.vy += Math.sin(player.angle) * player.acceleration;
+                player.thrusting = true;
+
+                // Engine particles
+                for (let i = 0; i < 2; i++) {
+                    particles.push({
+                        x: player.x - Math.cos(player.angle) * 30,
+                        y: player.y - Math.sin(player.angle) * 30,
+                        vx: player.vx - Math.cos(player.angle) * 2 + (Math.random() - 0.5),
+                        vy: player.vy - Math.sin(player.angle) * 2 + (Math.random() - 0.5),
+                        life: 15,
+                        maxLife: 15,
+                        size: 3 + Math.random() * 4,
+                        color: 'rgba(255, 150, 50,'
+                    });
+                }
+            } else {
+                player.thrusting = false;
+            }
+
+            // Friction
+            player.vx *= player.friction;
+            player.vy *= player.friction;
+
+            // Speed limit
+            const speed = Math.hypot(player.vx, player.vy);
+            if (speed > player.maxSpeed) {
+                player.vx = (player.vx / speed) * player.maxSpeed;
+                player.vy = (player.vy / speed) * player.maxSpeed;
+            }
+
+            // Update position
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // World boundaries
+            player.x = Math.max(50, Math.min(WORLD_SIZE - 50, player.x));
+            player.y = Math.max(50, Math.min(WORLD_SIZE - 50, player.y));
+
+            // Dynamic zoom based on speed
+            const speedRatio = speed / player.maxSpeed;
+            speedZoomOffset = speedRatio * 0.07;
+
+            // Update camera
+            camera.velocityX += (player.x - camera.x) * 0.05;
+            camera.velocityY += (player.y - camera.y) * 0.05;
+            camera.x += camera.velocityX * 0.1;
+            camera.y += camera.velocityY * 0.1;
+        }
+
+        // Draw Functions
+        function drawBackground(ctx, zoom) {
+            // Clear with space color
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid (Agar.io style notebook lines)
+            ctx.save();
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+            ctx.lineWidth = 1;
+
+            const offsetX = (-camera.x * zoom) % (GRID_SIZE * zoom);
+            const offsetY = (-camera.y * zoom) % (GRID_SIZE * zoom);
+
+            for (let x = offsetX; x < canvas.width; x += GRID_SIZE * zoom) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = offsetY; y < canvas.height; y += GRID_SIZE * zoom) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw system boundary
+            ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                -camera.x * zoom,
+                -camera.y * zoom,
+                WORLD_SIZE * zoom,
+                WORLD_SIZE * zoom
+            );
+
+            ctx.restore();
+        }
+
+        function drawStars(ctx, zoom) {
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            
+            // Procedural stars based on position
+            const starGrid = 100;
+            const startX = Math.floor((camera.x - canvas.width / zoom / 2) / starGrid) * starGrid;
+            const startY = Math.floor((camera.y - canvas.height / zoom / 2) / starGrid) * starGrid;
+
+            for (let x = startX; x < camera.x + canvas.width / zoom + starGrid; x += starGrid) {
+                for (let y = startY; y < camera.y + canvas.height / zoom + starGrid; y += starGrid) {
+                    const pseudoRandom = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+                    const brightness = pseudoRandom - Math.floor(pseudoRandom);
+                    
+                    if (brightness > 0.7) {
+                        const size = 1 + brightness * 2;
+                        ctx.globalAlpha = 0.5 + brightness * 0.5;
+                        ctx.beginPath();
+                        ctx.arc(
+                            (x - camera.x) * zoom,
+                            (y - camera.y) * zoom,
+                            size * zoom,
+                            0, Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.restore();
+        }
+
+        function drawAsteroid(ctx, asteroid, zoom) {
+            ctx.save();
+            ctx.translate(asteroid.x * zoom, asteroid.y * zoom);
+            ctx.rotate(asteroid.angle);
+
+            // Main body
+            ctx.fillStyle = '#8b7355';
+            ctx.beginPath();
+            ctx.moveTo(asteroid.points[0].x * zoom, asteroid.points[0].y * zoom);
+            for (let i = 1; i < asteroid.points.length; i++) {
+                const p = asteroid.points[i];
+                ctx.lineTo(p.x * zoom, p.y * zoom);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Craters in darker shade
+            ctx.fillStyle = '#6b5344';
+            for (const crater of asteroid.craters) {
+                ctx.beginPath();
+                ctx.arc(crater.x * zoom, crater.y * zoom, crater.radius * zoom, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawPlayer(ctx, zoom) {
+            ctx.save();
+            ctx.translate(player.x * zoom, player.y * zoom);
+            ctx.rotate(player.angle);
+
+            // Draw ship texture
+            ctx.drawImage(shipTexture, -25 * zoom, -25 * zoom, 50 * zoom, 50 * zoom);
+
+            // Engine glow when thrusting
+            if (player.thrusting) {
+                ctx.fillStyle = 'rgba(255, 150, 50, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(-10 * zoom, 20 * zoom);
+                ctx.lineTo(0, 35 * zoom);
+                ctx.lineTo(10 * zoom, 20 * zoom);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawParticles(ctx, zoom) {
+            for (const particle of particles) {
+                ctx.save();
+                ctx.fillStyle = particle.color + (particle.life / particle.maxLife) + ')';
+                ctx.beginPath();
+                ctx.arc(
+                    particle.x * zoom,
+                    particle.y * zoom,
+                    particle.size * zoom,
+                    0, Math.PI * 2
+                );
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawWarnings(ctx, zoom) {
+            for (let i = warnings.length - 1; i >= 0; i--) {
+                const warning = warnings[i];
+                
+                if (warning.timer <= 0) {
+                    warnings.splice(i, 1);
+                    continue;
+                }
+
+                const screenX = (warning.x - camera.x) * zoom + canvas.width / 2;
+                const screenY = (warning.y - camera.y) * zoom + canvas.height / 2;
+
+                // Only draw if on screen edge
+                if (screenX < -50 || screenX > canvas.width + 50 || 
+                    screenY < -50 || screenY > canvas.height + 50) {
+                    
+                    ctx.save();
+                    ctx.font = 'bold 24px Arial';
+                    ctx.fillStyle = warning.type === 'flyby' ? '#ff0000' : '#ffffff';
+                    ctx.textAlign = 'center';
+                    
+                    const alpha = Math.min(1, warning.timer / 30);
+                    ctx.globalAlpha = alpha;
+                    
+                    // Position on edge
+                    let edgeX, edgeY;
+                    if (screenX < 0) edgeX = 30;
+                    else if (screenX > canvas.width) edgeX = canvas.width - 30;
+                    else edgeX = screenX;
+                    
+                    if (screenY < 0) edgeY = 30;
+                    else if (screenY > canvas.height) edgeY = canvas.height - 30;
+                    else edgeY = screenY;
+                    
+                    ctx.fillText('!', edgeX, edgeY);
+                    ctx.restore();
+                }
+
+                warning.timer--;
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('scoreDisplay').textContent = `Очки: ${gameState.score}`;
+            document.getElementById('healthDisplay').textContent = `Здоровье: ${gameState.health}%`;
+            document.getElementById('rocketsDisplay').textContent = `Ракет избегано: ${gameState.rocketsAvoided}`;
+            
+            const minutes = Math.floor(gameState.gameTime / 3600);
+            const seconds = Math.floor((gameState.gameTime % 3600) / 60);
+            const centiseconds = Math.floor((gameState.gameTime % 60) / 6);
+            document.getElementById('centerInfo').textContent = 
+                `ВРЕМЯ: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${centiseconds.toString().padStart(2, '0')}`;
+        }
+
+        // Game Over
+        function gameOver() {
+            gameState.isGameOver = true;
+            gameState.gamesPlayed++;
+            if (gameState.score > gameState.bestScore) {
+                gameState.bestScore = gameState.score;
+            }
+            saveGame();
+            alert(`Игра окончена! Счет: ${gameState.score}`);
+        }
+
+        // Save/Load Game
+        function saveGame() {
+            try {
+                localStorage.setItem('neonDefender2026_save', JSON.stringify({
+                    currency: gameState.currency,
+                    bestScore: gameState.bestScore,
+                    gamesPlayed: gameState.gamesPlayed,
+                    lastSaveTime: new Date().toISOString()
+                }));
+                gameState.saveType = 'local';
+                gameState.lastSaveTime = new Date();
+            } catch (e) {
+                gameState.saveType = 'session';
+            }
+        }
+
+        function loadGame() {
+            try {
+                const save = localStorage.getItem('neonDefender2026_save');
+                if (save) {
+                    const data = JSON.parse(save);
+                    gameState.currency = data.currency || 0;
+                    gameState.bestScore = data.bestScore || 0;
+                    gameState.gamesPlayed = data.gamesPlayed || 0;
+                    gameState.lastSaveTime = data.lastSaveTime ? new Date(data.lastSaveTime) : null;
+                    gameState.saveType = 'local';
+                }
+            } catch (e) {
+                gameState.saveType = 'session';
+            }
+        }
+
+        // Initialize Game
+        function initGame() {
+            loadGame();
+            initAsteroids();
+            
+            // Spawn timers
+            setInterval(() => {
+                if (!gameState.isPaused && !gameState.isGameOver && rockets.length < 5) {
+                    spawnHunterRocket();
+                }
+            }, 3000);
+
+            setInterval(() => {
+                if (!gameState.isPaused && !gameState.isGameOver) {
+                    spawnFlybyRockets();
+                }
+            }, 8000);
+
+            // Game loop
+            gameLoop();
+        }
+
+        // Main Game Loop
+        function gameLoop() {
+            if (!gameState.isPaused && !gameState.isGameOver) {
+                gameState.gameTime++;
+                
+                // Update adaptive zoom
+                calculateAdaptiveZoom();
+
+                // Update player
+                updatePlayer();
+
+                // Update rockets
+                for (const rocket of rockets) {
+                    if (rocket.active) {
+                        rocket.update(player.x, player.y);
+                    }
+                }
+                rockets = rockets.filter(r => r.active);
+
+                for (const rocket of flybyRockets) {
+                    if (rocket.active) {
+                        rocket.update();
+                    }
+                }
+                flybyRockets = flybyRockets.filter(r => r.active);
+
+                // Update asteroids
+                for (const asteroid of asteroids) {
+                    asteroid.x += asteroid.vx;
+                    asteroid.y += asteroid.vy;
+                    asteroid.angle += asteroid.rotationSpeed;
+
+                    // Bounce off world boundaries
+                    if (asteroid.x < asteroid.size || asteroid.x > WORLD_SIZE - asteroid.size) {
+                        asteroid.vx *= -1;
+                        asteroid.x = Math.max(asteroid.size, Math.min(WORLD_SIZE - asteroid.size, asteroid.x));
+                    }
+                    if (asteroid.y < asteroid.size || asteroid.y > WORLD_SIZE - asteroid.size) {
+                        asteroid.vy *= -1;
+                        asteroid.y = Math.max(asteroid.size, Math.min(WORLD_SIZE - asteroid.size, asteroid.y));
+                    }
+                }
+
+                // Update particles
+                for (const particle of particles) {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life--;
+                }
+                particles = particles.filter(p => p.life > 0);
+
+                // Check collisions
+                checkCollisions();
+
+                // Update score
+                if (gameState.gameTime % 60 === 0) {
+                    gameState.score += 10;
+                    gameState.currency += 1;
+                }
+
+                updateUI();
+                saveGame();
+            }
+
+            // Render
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground(ctx, currentZoom);
+            drawStars(ctx, currentZoom);
+
+            // Apply camera transform
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(currentZoom, currentZoom);
+            ctx.translate(-camera.x, -camera.y);
+
+            // Draw asteroids
+            for (const asteroid of asteroids) {
+                drawAsteroid(ctx, asteroid, 1);
+            }
+
+            // Draw rockets
+            for (const rocket of rockets) {
+                rocket.draw(ctx, 1);
+            }
+            for (const rocket of flybyRockets) {
+                rocket.draw(ctx, 1);
+            }
+
+            // Draw player
+            drawPlayer(ctx, 1);
+
+            // Draw particles
+            drawParticles(ctx, 1);
+
+            ctx.restore();
+
+            // Draw warnings (screen-space)
+            drawWarnings(ctx, currentZoom);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Button Handlers
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            document.getElementById('currencyStat').textContent = gameState.currency;
+            document.getElementById('bestScoreStat').textContent = gameState.bestScore;
+            document.getElementById('gamesPlayedStat').textContent = gameState.gamesPlayed;
+            document.getElementById('saveStatusStat').textContent = 
+                gameState.saveType === 'local' ? 'Локальное' : 'Сессия';
+            document.getElementById('lastSaveStat').textContent = 
+                gameState.lastSaveTime ? gameState.lastSaveTime.toLocaleTimeString() : '-';
+            document.getElementById('profileModal').style.display = 'flex';
+        });
+
+        document.getElementById('closeProfileBtn').addEventListener('click', () => {
+            document.getElementById('profileModal').style.display = 'none';
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const shareUrl = `https://krepost.ru/game?score=${gameState.score}`;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('Ссылка скопирована в буфер обмена!');
+            }).catch(() => {
+                prompt('Скопируйте ссылку:', shareUrl);
+            });
+        });
+
+        document.getElementById('soundBtn').addEventListener('click', () => {
+            // Toggle sound (placeholder)
+            alert('Звук переключен');
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            if (confirm('Перезагрузить игру?')) {
+                location.reload();
+            }
+        });
+
+        // Handle orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 100);
+        });
+
+        // Start game
+        initGame();
+    </script>
+</body>
+</html>

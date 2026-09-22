@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Defender 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%);
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dashboard Panel */
+        #dashboardPanel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: linear-gradient(180deg, rgba(20, 20, 40, 0.95) 0%, rgba(10, 10, 30, 0.9) 100%);
+            border-bottom: 1px solid rgba(100, 150, 255, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            min-height: 50px;
+        }
+
+        .dashboard-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dashboard-section.left {
+            flex: 0 0 auto;
+        }
+
+        .dashboard-section.center {
+            flex: 1;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .dashboard-section.right {
+            flex: 0 0 auto;
+            justify-content: flex-end;
+        }
+
+        .dash-btn {
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.2) 0%, rgba(50, 100, 200, 0.3) 100%);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            border-radius: 8px;
+            color: #aaccff;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
+        }
+
+        .dash-btn:hover {
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.4) 0%, rgba(50, 100, 200, 0.5) 100%);
+            transform: translateY(-1px);
+        }
+
+        .dash-btn.round {
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+        }
+
+        .dash-btn.rect {
+            border-radius: 6px;
+            padding: 6px 12px;
+        }
+
+        .dash-icon {
+            font-size: 16px;
+        }
+
+        .center-info {
+            background: linear-gradient(135deg, rgba(0, 20, 60, 0.6) 0%, rgba(0, 40, 80, 0.4) 100%);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 6px 16px;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(100, 150, 255, 0.5);
+        }
+
+        /* Game Info Panel */
+        #gameInfoPanel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 8px 12px;
+            background: linear-gradient(180deg, rgba(10, 10, 30, 0.8) 0%, rgba(5, 5, 20, 0.7) 100%);
+            border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+            backdrop-filter: blur(5px);
+            z-index: 90;
+            flex-wrap: wrap;
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, rgba(20, 40, 80, 0.6) 0%, rgba(10, 30, 60, 0.5) 100%);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 12px;
+            padding: 6px 12px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .resource-icon {
+            font-size: 16px;
+        }
+
+        .resource-value {
+            font-weight: bold;
+            color: #aaccff;
+        }
+
+        /* Canvas */
+        #gameCanvas {
+            flex: 1;
+            width: 100%;
+            background: radial-gradient(ellipse at center, #1a1a3a 0%, #0a0a1a 100%);
+        }
+
+        /* Mobile Controls */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 80;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.3) 0%, rgba(50, 100, 200, 0.4) 100%);
+            border: 2px solid rgba(100, 150, 255, 0.5);
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 15px rgba(0, 100, 255, 0.3);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.5) 0%, rgba(50, 100, 200, 0.6) 100%);
+        }
+
+        .control-btn.small {
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a3a 0%, #0a0a2a 100%);
+            border: 2px solid rgba(100, 150, 255, 0.4);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0, 100, 255, 0.3);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #aaccff;
+            text-align: center;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-close {
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.3) 0%, rgba(50, 100, 200, 0.4) 100%);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            border-radius: 8px;
+            color: #ffffff;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.5) 0%, rgba(50, 100, 200, 0.6) 100%);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+        }
+
+        .stat-label {
+            color: #8899aa;
+        }
+
+        .stat-value {
+            color: #aaccff;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            #dashboardPanel {
+                padding: 6px 8px;
+                min-height: 45px;
+            }
+
+            .dash-btn {
+                min-width: 28px;
+                min-height: 28px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+
+            .dash-btn.round {
+                width: 32px;
+                height: 32px;
+            }
+
+            .center-info {
+                font-size: 12px;
+                padding: 4px 10px;
+            }
+
+            #gameInfoPanel {
+                gap: 8px;
+                padding: 6px 8px;
+            }
+
+            .resource-item {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .resource-icon {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .dashboard-section.left .dash-btn:not(:first-child) {
+                display: none;
+            }
+
+            .center-info {
+                font-size: 11px;
+                padding: 3px 6px;
+            }
+
+            .resource-item span:not(.resource-icon) {
+                display: none;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .dash-btn {
+                border-radius: 6px !important;
+                padding: 6px 12px !important;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            #dashboardPanel {
+                min-height: 40px;
+                padding: 4px 8px;
+            }
+
+            #gameInfoPanel {
+                padding: 4px 8px;
+            }
+
+            .dash-btn {
+                min-width: 26px;
+                min-height: 26px;
+                padding: 4px;
+            }
+
+            .center-info {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Dashboard Panel -->
+        <div id="dashboardPanel">
+            <div class="dashboard-section left">
+                <button class="dash-btn round" id="profileBtn" title="Профиль">
+                    <span class="dash-icon">👤</span>
+                </button>
+                <button class="dash-btn round" id="shareBtn" title="Поделиться">
+                    <span class="dash-icon">🔗</span>
+                </button>
+            </div>
+            <div class="dashboard-section center">
+                <div class="center-info" id="centerInfo">⏱️ Время: 00:00</div>
+            </div>
+            <div class="dashboard-section right">
+                <button class="dash-btn round" id="soundBtn" title="Звук">
+                    <span class="dash-icon">🔊</span>
+                </button>
+                <button class="dash-btn round" id="fullscreenBtn" title="Полный экран">
+                    <span class="dash-icon">⛶</span>
+                </button>
+                <button class="dash-btn round" id="restartBtn" title="Перезапуск">
+                    <span class="dash-icon">🔄</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Info Panel -->
+        <div id="gameInfoPanel">
+            <div class="resource-item">
+                <span class="resource-icon">⭐</span>
+                <span class="resource-value" id="scoreValue">0</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">❤️</span>
+                <span class="resource-value" id="healthValue">100</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">💎</span>
+                <span class="resource-value" id="crystalsValue">0</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">🎯</span>
+                <span class="resource-value" id="waveValue">1</span>
+            </div>
+        </div>
+
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Mobile Controls -->
+        <div id="mobileControls">
+            <button class="control-btn" id="fireBtn">🔥</button>
+            <button class="control-btn small" id="abilityBtn">⚡</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-title">📊 Профиль Игрока</div>
+            <div class="modal-body">
+                <div class="stat-row">
+                    <span class="stat-label">Валюта:</span>
+                    <span class="stat-value" id="profileCurrency">0 💰</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Счет:</span>
+                    <span class="stat-value" id="profileScore">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Волн пройдено:</span>
+                    <span class="stat-value" id="profileWaves">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Время в игре:</span>
+                    <span class="stat-value" id="profileTime">00:00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Хранение:</span>
+                    <span class="stat-value" id="storageStatus">Локальное</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Рейтинг:</span>
+                    <span class="stat-value" id="playerRank">--</span>
+                </div>
+            </div>
+            <button class="modal-close" id="closeProfileBtn">Закрыть</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

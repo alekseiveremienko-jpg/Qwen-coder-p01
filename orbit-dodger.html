@@ -787,6 +787,11 @@ var CONFIG = {
     hardMax: 42,       // предел количества камней в поле: осколки не размножаются бесконечно
     repel: 120         // сила взаимного отталкивания камней, px/с²
   },
+  mine: {
+    count: 18,         // количество мин в зоне 3
+    radius: 24,        // размер мины, px
+    zone: 3            // мины размещаются только в зоне 3 (опасный сектор)
+  },
   system: {
     bounds: 5200,      // половина стороны квадратного поля: ×4 к прежним 1300
 
@@ -799,6 +804,7 @@ var CONFIG = {
       { r: 3500, sec: "ЗОНА 2", name: "НЕЙТРАЛЬНЫЙ СЕКТОР", tag: "Пограничное пространство", color: "#ffd76a" },
       { r: 5200, sec: "ЗОНА 3", name: "ОПАСНЫЙ СЕКТОР",     tag: "Безконтрольные нули",      color: "#ff5d6c" }
     ],
+    systemName: "Воргат-7", // случайное имя солнечной системы
     grid: 40,          // клетка «тетрадного» поля, px
     spawn: { x: 0, y: -560 }, // старт — на безопасной орбите между планетами
     sun: {
@@ -1171,6 +1177,16 @@ var System = {
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
+      
+      // подпись названия солнечной системы
+      ctx.save();
+      ctx.font = "bold 16px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255, 220, 160, 0.9)";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(255, 140, 60, 0.7)";
+      ctx.shadowBlur = 12;
+      ctx.fillText(SY.systemName || "СОЛНЕЧНАЯ СИСТЕМА", 0, SY.sun.kill + 42);
+      ctx.restore();
     }
 
     // планеты: дневная сторона подсвечена солнцем, ночная в тени
@@ -2806,6 +2822,11 @@ var Sfx = {
     this.noise(0.22, 0.18);
     this.blip(150, 0.2, "triangle", 0.1, -80);
   },
+  boom: function () {
+    // взрыв мины: мощный бас + шум
+    this.noise(0.45, 0.38);
+    this.blip(70, 0.45, "sawtooth", 0.25, -40);
+  },
   explode: function () {
     this.noise(0.5, 0.35);
     this.blip(90, 0.4, "sawtooth", 0.18, -50);
@@ -3138,6 +3159,173 @@ var Asteroids = {
 };
 
 // ============================================================
+// РАЗДЕЛ J-6d · МОРСКИЕ МИНЫ (ГЛУБОКОВОДНЫЕ)
+// Статичные взрывные устройства в форме морских мин с якорями и шипами.
+// Размещаются только в Зоне 3 (опасный сектор). При столкновении — взрыв.
+// ============================================================
+var Mines = {
+  list: [],
+  
+  reset: function (px, py) {
+    this.list.length = 0;
+    var M = CONFIG.mine;
+    var SY = CONFIG.system;
+    var zoneStart = SY.zones[M.zone - 2] ? SY.zones[M.zone - 2].r : 1750; // внутренняя граница зоны 3
+    var zoneEnd = SY.zones[M.zone - 1].r; // внешняя граница зоны 3
+    
+    for (var i = 0; i < M.count; i++) {
+      // случайная позиция в кольце зоны 3
+      var angle = rand(0, TAU);
+      var dist = rand(zoneStart + 100, zoneEnd - 100);
+      var mx = Math.cos(angle) * dist;
+      var my = Math.sin(angle) * dist;
+      
+      // избегаем размещения на планетах
+      var tries = 0;
+      while (System.hit(mx, my, M.radius) && tries < 5) {
+        angle = rand(0, TAU);
+        dist = rand(zoneStart + 100, zoneEnd - 100);
+        mx = Math.cos(angle) * dist;
+        my = Math.sin(angle) * dist;
+        tries++;
+      }
+      
+      this.list.push(this.make(mx, my));
+    }
+  },
+  
+  make: function (x, y) {
+    var R = CONFIG.mine.radius;
+    return {
+      x: x,
+      y: y,
+      r: R * 0.9,
+      rot: rand(0, TAU),
+      sprite: this.buildSprite(R)
+    };
+  },
+  
+  buildSprite: function (R) {
+    var pad = 8;
+    var S = Math.ceil(R * 2.8 + pad * 2);
+    var c = document.createElement("canvas");
+    c.width = c.height = S;
+    var x = c.getContext("2d");
+    var cx = S / 2, cy = S / 2;
+    
+    x.save();
+    x.translate(cx, cy);
+    
+    // якорь (цепь внизу)
+    x.strokeStyle = "rgba(90, 100, 120, 0.7)";
+    x.lineWidth = 3;
+    x.beginPath();
+    x.moveTo(0, R * 0.6);
+    x.lineTo(0, R * 1.4);
+    x.stroke();
+    
+    // крюки якоря
+    x.beginPath();
+    x.moveTo(0, R * 1.4);
+    x.lineTo(-R * 0.5, R * 1.1);
+    x.moveTo(0, R * 1.4);
+    x.lineTo(R * 0.5, R * 1.1);
+    x.stroke();
+    
+    // основное тело мины (сфера)
+    var bodyGrad = x.createRadialGradient(-R * 0.3, -R * 0.3, R * 0.1, 0, 0, R * 1.1);
+    bodyGrad.addColorStop(0, "rgba(80, 90, 100, 0.9)");
+    bodyGrad.addColorStop(0.5, "rgba(50, 60, 70, 0.95)");
+    bodyGrad.addColorStop(1, "rgba(30, 35, 45, 1)");
+    x.fillStyle = bodyGrad;
+    x.beginPath();
+    x.arc(0, 0, R * 0.85, 0, TAU);
+    x.fill();
+    
+    // шипы по периметру (как у морской мины)
+    var spikes = 8 + Math.floor(rand(0, 3));
+    for (var i = 0; i < spikes; i++) {
+      var spikeAngle = (i / spikes) * TAU + rand(-0.1, 0.1);
+      var sx = Math.cos(spikeAngle) * R * 0.7;
+      var sy = Math.sin(spikeAngle) * R * 0.7;
+      var ex = Math.cos(spikeAngle) * R * 1.15;
+      var ey = Math.sin(spikeAngle) * R * 1.15;
+      
+      x.strokeStyle = "rgba(70, 80, 90, 0.8)";
+      x.lineWidth = 4;
+      x.lineCap = "round";
+      x.beginPath();
+      x.moveTo(sx, sy);
+      x.lineTo(ex, ey);
+      x.stroke();
+      
+      // кончики шипов светлее
+      x.fillStyle = "rgba(120, 140, 160, 0.6)";
+      x.beginPath();
+      x.arc(ex, ey, 2.5, 0, TAU);
+      x.fill();
+    }
+    
+    // блики на корпусе
+    x.fillStyle = "rgba(140, 160, 180, 0.3)";
+    x.beginPath();
+    x.arc(-R * 0.25, -R * 0.25, R * 0.15, 0, TAU);
+    x.fill();
+    
+    // красные индикаторы опасности
+    x.fillStyle = "rgba(255, 80, 60, 0.8)";
+    x.shadowColor = "rgba(255, 60, 40, 0.9)";
+    x.shadowBlur = 8;
+    for (var j = 0; j < 3; j++) {
+      var indAngle = (j / 3) * TAU;
+      x.beginPath();
+      x.arc(Math.cos(indAngle) * R * 0.5, Math.sin(indAngle) * R * 0.5, 3, 0, TAU);
+      x.fill();
+    }
+    x.shadowBlur = 0;
+    
+    x.restore();
+    
+    return c;
+  },
+  
+  update: function (dt, player) {
+    var pr = CONFIG.player.radius;
+    
+    for (var i = 0; i < this.list.length; i++) {
+      var m = this.list[i];
+      
+      var dx = player.x - m.x;
+      var dy = player.y - m.y;
+      var d = Math.hypot(dx, dy);
+      var rr = m.r + pr;
+      
+      // столкновение с кораблём — взрыв
+      if (player.alive && Game.state === "playing" && d < rr && d > 0.01) {
+        FX.explosion(m.x, m.y, "#ff6a40", 28, 320);
+        FX.dust(m.x, m.y, 14, 200);
+        Sfx.boom();
+        this.list.splice(i, 1);
+        i--;
+        Game.hitAsteroid(); // используем ту же функцию смерти
+        continue;
+      }
+    }
+  },
+  
+  draw: function (ctx) {
+    for (var i = 0; i < this.list.length; i++) {
+      var m = this.list[i];
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.rotate(m.rot);
+      ctx.drawImage(m.sprite, -m.sprite.width / 2, -m.sprite.height / 2);
+      ctx.restore();
+    }
+  }
+};
+
+// ============================================================
 // РАЗДЕЛ J-6c · СЛУЖЕБНАЯ ПАНЕЛЬ (ДАШБОРД)
 // Левая секция: профиль + «поделиться» (ссылка-заглушка krepost.ru).
 // Центр: игровые счётчики. Правая: звук, полный экран, перезагрузка.
@@ -3438,6 +3626,7 @@ var Render = {
     ctx.translate(-cam.x, -cam.y);
     System.draw(ctx, t); // тетрадное поле, солнце, планеты — под игрой
     Asteroids.draw(ctx, t);
+    Mines.draw(ctx, t);
     Missiles.draw(ctx, t);
     if (Player.alive) Player.draw(ctx, t);
     FX.draw(ctx);
@@ -3503,6 +3692,7 @@ var Game = {
     Player.reset();
     Camera.reset(Player.x, Player.y);
     Asteroids.reset(Player.x, Player.y);
+    Mines.reset(Player.x, Player.y);
     UI.syncHud(this);
     requestAnimationFrame(this.tick.bind(this));
   },
@@ -3513,6 +3703,7 @@ var Game = {
     FX.clear();
     Camera.reset(Player.x, Player.y);
     Asteroids.reset(Player.x, Player.y);
+    Mines.reset(Player.x, Player.y);
     this.time = 0;
     this.dodges = 0;
     this.zone = -1;
@@ -3668,6 +3859,7 @@ var Game = {
     }
 
     Asteroids.update(dt, Player);
+    Mines.update(dt, Player);
     Camera.update(dt, Player);
     FX.update(dt);
   },

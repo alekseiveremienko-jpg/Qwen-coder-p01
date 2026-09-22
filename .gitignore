@@ -1,0 +1,1 @@
+Nothing should be ignored in this case. The added files (`game/game.js` and `game/index.html`) are source code files that should be tracked in version control. There are no build artifacts, dependencies, or temporary files in the changes that would warrant adding ignore rules.

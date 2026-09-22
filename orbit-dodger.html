@@ -1,0 +1,3809 @@
+<!-- Orbit Dodger / Орбитальный уклонист -->
+<!-- Собрано из 23 разделов: 00-head.html, 01-base.css, 02-ui.css, 03-topbar.css, 10-body.html, 11-topbar.html, 19-script.html, 20-config.js, 21-utils.js, 22-system.js, 30-input.js, 31-camera.js, 32-player.js, 33-missiles.js, 34-effects.js, 35-audio.js, 36-asteroids.js, 37-topbar.js, 40-render.js, 50-game.js, 60-ui.js, 98-boot.js, 99-end.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05060d">
+<title>Orbit Dodger — Орбитальный уклонист</title>
+<style>
+
+/* ============================================================
+   РАЗДЕЛ C-1 · БАЗОВЫЕ СТИЛИ
+   ============================================================ */
+:root {
+  --bg: #05060d;
+  --ink: #e8ecff;
+  --dim: #8b93b8;
+  --accent: #5ee6ff;
+  --danger: #ff5d6c;
+  --panel: rgba(10, 14, 30, 0.82);
+  --line: rgba(120, 140, 220, 0.18);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+canvas#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* ============================================================
+   РАЗДЕЛ C-2 · ИНТЕРФЕЙС: HUD, ЭКРАНЫ, КНОПКИ
+   ============================================================ */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+.hud-top {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.pill {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.pill .lbl {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.pill .val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hud-best { text-align: right; }
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(20, 28, 60, 0.72), rgba(4, 6, 14, 0.9));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.screen.hidden { display: none; }
+.card {
+  max-width: min(480px, 94vw);
+  text-align: center;
+  padding: 28px 26px;
+  border-radius: 22px;
+  background: rgba(9, 12, 26, 0.72);
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+.card h1 { font-size: clamp(26px, 6vw, 40px); letter-spacing: 0.02em; margin-bottom: 2px; }
+.card .sub {
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.card p { color: #c3c9e8; font-size: 14px; line-height: 1.55; margin-bottom: 18px; }
+.btn {
+  cursor: pointer;
+  border: 1px solid rgba(94, 230, 255, 0.5);
+  background: linear-gradient(180deg, rgba(94, 230, 255, 0.22), rgba(94, 230, 255, 0.08));
+  color: #dff9ff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 12px 36px;
+  border-radius: 14px;
+  letter-spacing: 0.04em;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(94, 230, 255, 0.25); }
+.btn:active { transform: translateY(1px); }
+.keys {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 16px;
+  color: var(--dim);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.keys b {
+  color: #cfe6ff;
+  background: rgba(120, 150, 255, 0.12);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
+.stats { display: flex; gap: 26px; justify-content: center; margin: 6px 0 20px; }
+.stats .lbl { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+.stats .val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#screen-over .card { border-color: rgba(255, 93, 108, 0.35); }
+.over-title { color: #ffb4bb; }
+
+/* ============================================================
+   РАЗДЕЛ C-3 · СЛУЖЕБНАЯ ПАНЕЛЬ (ДАШБОРД)
+   Переиспользуемый компонент для всех веб-игр платформы.
+   Слева — профиль и «поделиться», в центре — игровые счётчики,
+   справа — звук, полный экран, перезагрузка.
+   На сенсорных экранах кнопки круглые (как в мобильных играх),
+   на ПК — прямоугольные «клавиши» с лёгким закруглением.
+   ============================================================ */
+#topbar {
+  position: fixed;
+  top: calc(6px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  z-index: 12; /* выше стартового экрана: панель доступна всегда */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(16, 22, 44, 0.9), rgba(9, 12, 26, 0.88));
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#topbar::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(94, 230, 255, 0.5), transparent);
+  pointer-events: none;
+}
+.tside { display: flex; align-items: center; gap: 6px; flex: none; }
+.tcenter { flex: 1 1 auto; display: flex; justify-content: center; min-width: 0; }
+
+/* центральная информация: главные счётчики игры */
+.tstats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 3px 16px;
+  background: rgba(8, 11, 24, 0.55);
+  border: 1px solid rgba(120, 140, 220, 0.14);
+  border-radius: 12px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.tstat { text-align: center; min-width: 40px; }
+.tstat + .tstat { border-left: 1px solid rgba(120, 140, 220, 0.14); padding-left: 14px; }
+.tstat .lbl {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.tstat .val {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.tstat .val.accent { color: var(--accent); }
+.tstat .val.danger { color: #ff8a95; }
+
+/* кнопки панели */
+.tbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid rgba(130, 150, 230, 0.28);
+  background: linear-gradient(180deg, rgba(44, 54, 96, 0.85), rgba(20, 26, 52, 0.9));
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.tbtn:hover { border-color: rgba(94, 230, 255, 0.55); }
+.tbtn:active { transform: scale(0.94); }
+.tbtn svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tbtn .ic-off { display: none; }
+.tbtn.is-off .ic-on { display: none; }
+.tbtn.is-off .ic-off { display: block; }
+.tbtn.is-off { color: #ff9aa5; }
+.tlabel { display: none; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+.tbtn kbd {
+  display: none;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  border: 1px solid rgba(120, 140, 220, 0.3);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: rgba(10, 14, 30, 0.6);
+}
+
+/* ПК: кнопки-клавиши (прямоугольные, слегка закруглённые) с подписями */
+@media (hover: hover) and (pointer: fine) {
+  .tbtn {
+    width: auto;
+    height: 34px;
+    padding: 0 11px;
+    border-radius: 9px;
+    box-shadow: 0 2px 0 rgba(4, 6, 16, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  }
+  .tbtn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 rgba(4, 6, 16, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+}
+@media (min-width: 768px) {
+  .tlabel { display: inline; }
+  .tbtn kbd { display: inline-block; }
+}
+
+/* узкие экраны: до 480px показываем только главную информацию */
+@media (max-width: 479px) {
+  .tstat-hide-s { display: none; }
+}
+@media (max-width: 419px) {
+  #topbar { left: 6px; right: 6px; padding: 5px; border-radius: 14px; }
+  .tside { gap: 4px; }
+  .tbtn { width: 36px; height: 36px; }
+  .tbtn svg { width: 16px; height: 16px; }
+  .tstats { gap: 10px; padding: 2px 10px; }
+  .tstat { min-width: 30px; }
+  .tstat + .tstat { padding-left: 10px; }
+  .tstat .val { font-size: 13.5px; }
+}
+@media (max-width: 359px) {
+  .tbtn { width: 34px; height: 34px; }
+  .tstats { gap: 8px; padding: 2px 8px; }
+  .tstat + .tstat { padding-left: 8px; }
+}
+
+/* подсказки про клавиши на стартовом экране — только для ПК */
+.keys-desktop { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .keys-desktop { display: inline; }
+}
+
+/* ---- окна: профиль, поделиться ---- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+.modal.hidden { display: none; }
+.modal-back {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 12, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.modal-card {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 86vh;
+  max-height: 86dvh;
+  overflow: auto;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(14, 19, 38, 0.97), rgba(8, 11, 24, 0.98));
+  border: 1px solid rgba(130, 150, 230, 0.3);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.6);
+  padding: 18px 18px 20px;
+}
+.mclose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 140, 220, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+.mclose:hover { color: var(--ink); border-color: rgba(94, 230, 255, 0.5); }
+
+.pf-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.pf-ava {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: linear-gradient(135deg, #2a3a6e, #151d3c);
+  border: 1px solid rgba(94, 230, 255, 0.4);
+}
+.pf-ava svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pf-name { font-weight: 700; font-size: 16px; }
+.pf-id { color: var(--dim); font-size: 11.5px; margin-top: 2px; letter-spacing: 0.04em; }
+
+.pf-coins {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: rgba(94, 230, 255, 0.07);
+  border: 1px solid rgba(94, 230, 255, 0.25);
+}
+.pf-gem { color: #ffd76a; font-size: 18px; line-height: 1; text-shadow: 0 0 12px rgba(255, 190, 80, 0.6); }
+.pf-coins b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.pf-coins .cap { color: var(--dim); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; text-align: right; }
+
+.pf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.pf-cell {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(120, 140, 220, 0.14);
+  border-radius: 12px;
+  padding: 9px 12px;
+}
+.pf-cell .lbl { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.pf-cell .val { font-size: 16px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+.pf-sec { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); margin: 0 0 8px; }
+.pf-rating { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pf-rating li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+.pf-rating li.you { border-color: rgba(94, 230, 255, 0.45); background: rgba(94, 230, 255, 0.08); }
+.pf-rank { width: 20px; text-align: center; color: var(--dim); font-size: 11px; font-weight: 700; flex: none; }
+.pf-rank.top { color: #ffd76a; }
+.pf-name-cell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.pf-store {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(120, 140, 220, 0.14);
+}
+.pf-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 5px;
+  background: #41d98d;
+  box-shadow: 0 0 10px rgba(65, 217, 141, 0.8);
+}
+.pf-dot.warn { background: #ffb454; box-shadow: 0 0 10px rgba(255, 180, 84, 0.8); }
+.pf-mode { font-size: 13.5px; font-weight: 700; }
+.pf-note { color: var(--dim); font-size: 12px; line-height: 1.45; margin-top: 2px; }
+.pf-save { color: var(--dim); font-size: 12px; }
+.pf-save b { color: #c3c9e8; font-variant-numeric: tabular-nums; }
+
+.pf-link { display: flex; gap: 8px; margin: 4px 0 8px; }
+.pf-link input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 12.5px;
+  color: #cfe6ff;
+  background: rgba(6, 9, 20, 0.8);
+  border: 1px solid rgba(120, 140, 220, 0.25);
+  border-radius: 10px;
+  padding: 9px 11px;
+  outline: none;
+}
+.pf-link .btn-mini {
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #dff9ff;
+  background: linear-gradient(180deg, rgba(94, 230, 255, 0.25), rgba(94, 230, 255, 0.08));
+  border: 1px solid rgba(94, 230, 255, 0.5);
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+.pf-link .btn-mini:active { transform: translateY(1px); }
+
+/* всплывающее уведомление */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(8px);
+  z-index: 40;
+  max-width: 86vw;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: rgba(12, 16, 34, 0.95);
+  border: 1px solid rgba(94, 230, 255, 0.35);
+  color: #dff9ff;
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---- уведомление о зоне безопасности (стиль зон EVE / тосты 2026) ---- */
+#zone-banner {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top)); /* сразу под служебной панелью */
+  left: 50%;
+  transform: translateX(-50%) translateY(-14px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 92vw;
+  padding: 8px 15px 8px 12px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(14, 19, 40, 0.94), rgba(8, 11, 26, 0.94));
+  border: 1px solid rgba(130, 150, 230, 0.3);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1.2, 0.36, 1);
+  white-space: nowrap;
+}
+#zone-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.zb-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+.zb-sec {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: currentColor;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  padding: 2px 7px;
+  line-height: 1.2;
+}
+.zb-text {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #eef4ff;
+}
+.zb-tag {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  border-left: 1px solid rgba(120, 140, 220, 0.25);
+  padding-left: 9px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 419px) {
+  #zone-banner { gap: 7px; padding: 7px 12px 7px 10px; border-radius: 11px; }
+  .zb-text { font-size: 12.5px; letter-spacing: 0.08em; }
+  .zb-tag { font-size: 10px; padding-left: 7px; }
+  .zb-sec { font-size: 11px; padding: 1px 6px; }
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="screen" id="screen-start">
+  <div class="card">
+    <h1>Орбитальный уклонист</h1>
+    <div class="sub">Orbit Dodger</div>
+    <p>Ты — разведчик в замкнутой звёздной системе. В центре пылает солнце, вокруг него
+       ходят планеты, а поле жёстко ограничено границей — как лист тетради в клетку.
+       Ракеты заходят с тыла и упрямо возвращаются по широким дугам. Спокойные манёвры
+       послушны, но крутой разворот (больше 135°) идёт строго по личному кругу корабля:
+       на месте не развернёшься, планируй вираж заранее. Корону солнца пересекать нельзя,
+       планеты твёрдые. Стены держат корабль и астероиды, а торпеды пролетают
+       сквозь них — уворачивайся, а не прячься за краем.</p>
+    <button class="btn" id="btn-start">Играть</button>
+    <div class="keys">
+      <span><b>W A S D</b> / <b>&larr; &uarr; &darr; &rarr;</b> — курс и тяга</span>
+      <span class="keys-desktop"><b>M</b> — звук &middot; <b>F</b> — весь экран</span>
+      <span><b>палец</b> — джойстик на экране</span>
+    </div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-over">
+  <div class="card">
+    <h1 class="over-title">Корабль сбит</h1>
+    <div class="sub">сигнал потерян</div>
+    <div class="stats">
+      <div><div class="lbl">Уклонений</div><div class="val" id="over-score">0</div></div>
+      <div><div class="lbl">Время</div><div class="val" id="over-time">0.0</div></div>
+      <div><div class="lbl">Рекорд</div><div class="val" id="over-best">0</div></div>
+    </div>
+    <button class="btn" id="btn-restart">Ещё раз</button>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     СЛУЖЕБНАЯ ПАНЕЛЬ (ДАШБОРД) — переиспользуется во всех веб-играх.
+     Слева максимум 2 кнопки, в центре главная игровая информация,
+     справа максимум 3 служебные кнопки.
+     ============================================================ -->
+<header id="topbar">
+  <div class="tside">
+    <button class="tbtn" id="tb-profile" title="Профиль игрока" aria-label="Профиль игрока">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span class="tlabel">Профиль</span>
+    </button>
+    <button class="tbtn" id="tb-share" title="Поделиться ссылкой на игровую сессию" aria-label="Поделиться">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+      <span class="tlabel">Поделиться</span>
+    </button>
+  </div>
+
+  <div class="tcenter">
+    <div class="tstats">
+      <div class="tstat"><div class="lbl">Счёт</div><div class="val accent" id="hud-score">0</div></div>
+      <div class="tstat"><div class="lbl">Время</div><div class="val" id="hud-time">0.0</div></div>
+      <div class="tstat tstat-hide-s"><div class="lbl">Ракеты</div><div class="val danger" id="hud-threats">0</div></div>
+      <div class="tstat tstat-hide-s"><div class="lbl">Рекорд</div><div class="val" id="hud-best">0</div></div>
+      <div class="tstat tstat-hide-s"><div class="lbl">FPS</div><div class="val" id="hud-fps">60</div></div>
+      <div class="tstat tstat-hide-s"><div class="lbl">Частицы</div><div class="val" id="hud-parts">0</div></div>
+    </div>
+  </div>
+
+  <div class="tside">
+    <button class="tbtn" id="tb-sound" title="Звук (M)" aria-label="Звук">
+      <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
+      <span class="tlabel">Звук</span>
+      <kbd>M</kbd>
+    </button>
+    <button class="tbtn" id="tb-full" title="Во весь экран (F)" aria-label="Во весь экран">
+      <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span class="tlabel">Экран</span>
+      <kbd>F</kbd>
+    </button>
+    <button class="tbtn" id="tb-reload" title="Перезагрузить игру" aria-label="Перезагрузить игру">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span class="tlabel">Заново</span>
+    </button>
+  </div>
+</header>
+
+<!-- уведомление о входе в зону безопасности (в стиле зон EVE Online) -->
+<div id="zone-banner" class="hidden" role="status" aria-live="polite">
+  <span class="zb-dot"></span>
+  <span class="zb-sec" id="zb-sec">1.0</span>
+  <span class="zb-text" id="zb-text">ЯДРО</span>
+  <span class="zb-tag" id="zb-tag">Высокая безопасность</span>
+</div>
+
+<!-- окно: профиль игрока -->
+<div class="modal hidden" id="modal-profile" role="dialog" aria-modal="true" aria-label="Профиль игрока">
+  <div class="modal-back" data-close="1"></div>
+  <div class="modal-card">
+    <button class="mclose" data-close="1" aria-label="Закрыть">&#10005;</button>
+    <div class="pf-head">
+      <div class="pf-ava">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </div>
+      <div>
+        <div class="pf-name">Пилот-01</div>
+        <div class="pf-id">ID: KRP-7714 &middot; Крепость</div>
+      </div>
+    </div>
+    <div class="pf-coins">
+      <span class="pf-gem">&#9670;</span>
+      <b id="pf-coins">0</b>
+      <span class="cap">Кристаллы<br>платформы</span>
+    </div>
+    <div class="pf-grid">
+      <div class="pf-cell"><div class="lbl">Матчей</div><div class="val" id="pf-games">0</div></div>
+      <div class="pf-cell"><div class="lbl">Лучший счёт</div><div class="val" id="pf-best">0</div></div>
+      <div class="pf-cell"><div class="lbl">Всего уклонений</div><div class="val" id="pf-dodges">0</div></div>
+      <div class="pf-cell"><div class="lbl">Время в игре</div><div class="val" id="pf-time">0 мин</div></div>
+    </div>
+    <div class="pf-sec">Рейтинг игроков &middot; неделя</div>
+    <ol class="pf-rating" id="pf-rating"></ol>
+    <div class="pf-sec">Сохранение данных</div>
+    <div class="pf-store">
+      <span class="pf-dot" id="pf-dot"></span>
+      <div>
+        <div class="pf-mode" id="pf-mode">&mdash;</div>
+        <div class="pf-note" id="pf-note">&mdash;</div>
+      </div>
+    </div>
+    <div class="pf-save">Последнее сохранение: <b id="pf-save">&mdash;</b></div>
+  </div>
+</div>
+
+<!-- окно: поделиться ссылкой на сессию -->
+<div class="modal hidden" id="modal-share" role="dialog" aria-modal="true" aria-label="Поделиться ссылкой">
+  <div class="modal-back" data-close="1"></div>
+  <div class="modal-card">
+    <button class="mclose" data-close="1" aria-label="Закрыть">&#10005;</button>
+    <div class="pf-sec">Ссылка на игровую сессию</div>
+    <div class="pf-link">
+      <input id="share-link" readonly aria-label="Ссылка на игровую сессию">
+      <button class="btn-mini" id="btn-copy">Копировать</button>
+    </div>
+    <p class="pf-note">Друг откроет ссылку и попадёт в эту же игру на krepost.ru.<br>(Ссылка-заглушка: платформа в разработке.)</p>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+"use strict";
+
+// ============================================================
+// РАЗДЕЛ J-1 · КОНФИГУРАЦИЯ
+// Все игровые константы собраны в одном месте.
+// ============================================================
+var CONFIG = {
+  player: {
+    accel: 576,        // тяга, px/с² (−10%: разгон и торможение дороже — сброс скорости стал опаснее)
+    maxSpeed: 346,     // предел скорости, px/с (−10%)
+    friction: 0.35,    // доля скорости, сохраняемая за 1 секунду (космическая "инерция")
+    radius: 13,
+    turnRadius: 20.6,  // личный радиус круга разворота, px — свой у каждого корабля:
+                       // крутой разворот идёт по полукругу ЭТОГО радиуса
+                       // (в 8 раз меньше исходного 165)
+    turnHardAngle: 135, // порог включения личного круга, градусов: пока курс отличается
+                       // меньше чем на 135° — спокойный доворот, круче — строгий круг
+    turnOmegaMin: 0.55, // минимальная скорость доворота носа на месте, рад/с
+                       // (стоящий корабль крутится очень медленно — вираж всегда дороже)
+    lateralGrip: 0.06, // доля бокового сноса, сохраняемая за 1 с: сцепление с курсом,
+                       // траектория превращается в дугу круга
+    flameRate: 90      // частиц двигателя в секунду при полной тяге
+  },
+  missile: {
+    speed: 225,        // стартовая скорость после пуска
+    maxSpeed: 367,     // предельная скорость разгона (334 + 10% — догонять стало страшнее)
+    accel: 155,        // разгон двигателя, px/с²
+    steer: 1.1,        // макс. скорость поворота вектора тяги, рад/с —
+                       // "тяжёлое" тело не умеет маневрировать резко, только дугами
+    steerGain: 1.9,    // пропорциональность доворота (плавный вход/выход из виража)
+    spawnMin: 2.0,     // задержка перед первым пуском, с
+    waveEvery: 17,     // интервал добавления следующей ракеты, с
+    maxRockets: 3,     // максимум одновременно: 1-3
+    spawnSpread: 0.7,  // разброс стороны пуска: новая торпеда чаще всего летит с противоположной стороны
+    reactionDelay: 1.05,   // время "схода с рельс" после пуска — летит по прямой, можно уйти с курса
+    closeRange: 78,        // ближе — зафиксировано сближение
+    dodgeRange: 135,       // после сближения отошёл дальше — засчитано уклонение
+    radius: 9,
+    lifetimeMin: 24,       // ресурс двигателя, после — самоликвидация
+    lifetimeMax: 38,
+    smokeAt: 3.5,          // за сколько секунд до конца ресурса двигатель начинает дымить
+    smokeRate: 16,         // клубов копоти в секунду в начале; к подрыву — в 2.6 раза гуще
+    trailMax: 170,         // точек трейла (каждый кадр)
+
+    // классы охотников: множители к базовым параметрам выше
+    // (r — к radius, steer — к steer, speed — к speed/maxSpeed)
+    classes: {
+      hunter:    { scale: 1,    r: 1,    steer: 1,    speed: 1,    trailW: 2.6, hp: 1, blast: 0 },
+      small:     { scale: 0.62, r: 0.67, steer: 1.55, speed: 1.14, trailW: 1.8, hp: 1, blast: 0 },  // юркий, слабый
+      zubr:      { scale: 1.55, r: 1.55, steer: 0.55, speed: 0.8,  trailW: 3.4, hp: 3, blast: 0 },  // бронированный: ломит камни корпусом
+      ballistic: { scale: 1.1,  r: 1.1,  steer: 0.35, speed: 1.28, trailW: 2.4, hp: 1, blast: 1 }   // дугой, взрывается рядом
+    },
+    blastRadius: 92,     // зона подрыва баллистической, px
+    blastKill: 42,       // гибельно только вблизи центра взрыва
+    smallChance: 0.3,    // доли классов при пуске
+    zubrChance: 0.18,
+    ballisticChance: 0.16
+  },
+  straight: {
+    // ВРЕМЕННО для теста: было 51/85 — вернуть перед релизом
+    everyMin: 8,       // пауза между волнами пролёток, с
+    everyMax: 14,
+    speedMin: 460,     // быстрее охотников (+15% к исходным 400), но курс строго прямой
+    speedMax: 540,
+    groupMin: 1,       // размер группы
+    groupMax: 4,
+    gap: 46,           // дистанция между торпедами в строю: группа идёт "стеной"
+    warnTime: 2.4,     // сколько секунд горит "!" ДО вылета; курс задаётся только после него
+    lead: 0.75,        // доля упреждения: цель — точка, где игрок окажется, а не где был
+    aimJitter: 42,     // случайный разброс прицела, px — стена не идеально по центру
+    lifetime: 14,      // страховочное время жизни, с
+    radius: 9
+  },
+  asteroid: {
+    count: 14,         // камней в поле одновременно
+    radiusMin: 22,     // размер камня, px
+    radiusMax: 28,     // вдвое меньше прежних 56 — реалистично на фоне планет
+    driftMin: 6,       // собственный дрейф, px/с
+    driftMax: 30,
+    spinMax: 0.35,     // вращение, рад/с
+    ringMin: 520,      // где появляются новые камни (вокруг игрока)
+    ringMax: 1050,
+    splitMin: 13,      // камни мельче не колются: превращаются в дымок и тают
+                       // (13, а не 26: максимальный камень уменьшен вдвое — 28)
+    childMin: 11,      // осколок мельче этого радиуса не бывает
+    childVolume: 0.62, // суммарный объём осколков от исходного камня (через кубы радиусов)
+    hardMax: 42,       // предел количества камней в поле: осколки не размножаются бесконечно
+    repel: 120         // сила взаимного отталкивания камней, px/с²
+  },
+  system: {
+    bounds: 5200,      // половина стороны квадратного поля: ×4 к прежним 1300
+
+    // три сектора безопасности в духе EVE Online: центр — солнце,
+    // безопасное ядро; дальше нейтральный пояс; у края — опасные
+    // «нули» без всякого контроля. r — внешняя граница сектора
+    // (расстояние от центра системы)
+    zones: [
+      { r: 1750, sec: "ЗОНА 1", name: "БЕЗОПАСНЫЙ СЕКТОР",  tag: "Ядро системы · солнце",    color: "#41d98d" },
+      { r: 3500, sec: "ЗОНА 2", name: "НЕЙТРАЛЬНЫЙ СЕКТОР", tag: "Пограничное пространство", color: "#ffd76a" },
+      { r: 5200, sec: "ЗОНА 3", name: "ОПАСНЫЙ СЕКТОР",     tag: "Безконтрольные нули",      color: "#ff5d6c" }
+    ],
+    grid: 40,          // клетка «тетрадного» поля, px
+    spawn: { x: 0, y: -560 }, // старт — на безопасной орбите между планетами
+    sun: {
+      r: 92,           // видимое ядро солнца, px
+      kill: 150        // радиус короны: всё, что в неё попало, сгорает
+    },
+    planetPush: 340,   // пролёт НАД планетой: ускорение, с которым гравитация
+                       // сдувает с курса корабль и торпеды (px/с²)
+    // планеты: орбита, размер, угловая скорость (рад/с), стартовый угол,
+    // палитра (свет/основа/тень) и, при желании, кольцо
+    planets: [
+      { orbit: 330,  size: 24, speed: 0.15,  phase: 0.6, c1: "#ffc9a3", c2: "#e0855c", c3: "#6e3020" },
+      { orbit: 470,  size: 32, speed: 0.112, phase: 2.4, c1: "#a5f2de", c2: "#4fb8a8", c3: "#1c544d", ring: true },
+      { orbit: 640,  size: 42, speed: 0.088, phase: 4.2, c1: "#ffe4a8", c2: "#d9b46a", c3: "#6b4c22" },
+      { orbit: 830,  size: 34, speed: 0.068, phase: 5.4, c1: "#e0f4ff", c2: "#8fc0e8", c3: "#33608e" },
+      { orbit: 1040, size: 50, speed: 0.05,  phase: 1.7, c1: "#d9c9ff", c2: "#a98fd9", c3: "#463273" }
+    ]
+  },
+  camera: {
+    lead: 0.42, lerp: 3.4, shakeDecay: 5.2,
+    // адаптивный зум: масштаб мира подбирается по ПЛОЩАДИ экрана —
+    // тогда радиус обзора (что видно вокруг корабля) на телефоне и
+    // планшете примерно такой же, как на ПК. Маркеры, джойстик и
+    // всплывающий текст остаются в экранных пикселях и не мельчают.
+    zoom: {
+      refW: 1366,      // условный "эталонный" экран ПК
+      refH: 850,
+      min: 0.55,       // сильнее отъезжать нельзя — корабль станет крохотным
+      max: 1.0,        // на ПК зум всегда 1 — как и было
+      speed: 0.07,     // на полной скорости камера дополнительно отъезжает на 7%
+      ease: 3.2        // плавность динамического зума
+    }
+  },
+  colors: {
+    missileCore: "#ffe9c9",
+    missileGlow: "#ff7a45",
+    missileTrail: "188,220,255",
+    straightTrail: "255,124,116",
+    accent: "#5ee6ff",
+    danger: "#ff5d6c"
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-2 · УТИЛИТЫ И ХРАНИЛИЩЕ
+// ============================================================
+var TAU = Math.PI * 2;
+
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function dist2(ax, ay, bx, by) { var dx = bx - ax, dy = by - ay; return dx * dx + dy * dy; }
+function angleDiff(a, b) {
+  var d = (b - a) % TAU;
+  if (d > Math.PI) d -= TAU;
+  if (d < -Math.PI) d += TAU;
+  return d;
+}
+// затухание, независимое от частоты кадров: vel *= expDecay(base, dt)
+function expDecay(base, dt) { return Math.pow(base, dt); }
+
+function fmtTime(t) {
+  if (t < 60) return t.toFixed(1);
+  return Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+}
+
+// Хранилище с абстракцией на будущее: платформа переедет на внешнюю БД,
+// а игра может запускаться в sandbox-iframe, где localStorage недоступен.
+// Всё общение с сохранениями — только через Store: он сам определяет,
+// куда писать (облако -> localStorage -> память сессии) и хранит статус
+// для профиля игрока (временная / локальная / облачная база).
+var Store = (function () {
+  var memory = Object.create(null); // резерв: данные живут до перезагрузки
+  var driver = null;                // внешний драйвер (облачная БД платформы)
+  var mode = "session";             // "cloud" | "local" | "session"
+  var lastSave = null;              // Date последней успешной записи
+
+  function detect() {
+    if (driver) { mode = "cloud"; return; }
+    try {
+      var probe = "__orbit_probe__";
+      window.localStorage.setItem(probe, "1");
+      window.localStorage.removeItem(probe);
+      mode = "local";
+    } catch (e) {
+      mode = "session";
+    }
+  }
+  detect();
+
+  return {
+    // хост подключает облачный драйвер: Store.useDriver({ get, set })
+    useDriver: function (d) { driver = d || null; detect(); },
+    mode: function () { return mode; },
+    lastSaveText: function () {
+      if (!lastSave) return "\u2014";
+      function p2(n) { return (n < 10 ? "0" : "") + n; }
+      return p2(lastSave.getHours()) + ":" + p2(lastSave.getMinutes()) + ":" + p2(lastSave.getSeconds());
+    },
+    get: function (k) {
+      if (driver) {
+        try { return driver.get(k); } catch (e) { /* уйдём в локальные варианты */ }
+      }
+      try { return window.localStorage.getItem(k); } catch (e) {
+        return memory[k] !== undefined ? memory[k] : null;
+      }
+    },
+    set: function (k, v) {
+      var saved = false;
+      if (driver) {
+        try { driver.set(k, v); saved = true; } catch (e) { /* уйдём в локальные варианты */ }
+      }
+      if (!saved) {
+        try { window.localStorage.setItem(k, v); saved = true; }
+        catch (e) { memory[k] = v; saved = true; } // сессия тоже считается сохранением
+      }
+      if (saved) lastSave = new Date();
+    }
+  };
+})();
+
+// предрендер радиального свечения (быстрее shadowBlur в разы)
+function makeGlow(color, size) {
+  var c = document.createElement("canvas");
+  c.width = c.height = size;
+  var ctx = c.getContext("2d");
+  var g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, color);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return c;
+}
+
+// процедурная текстура обшивки: панели, заклёпки, лёгкий шум
+function makePanelTexture(size) {
+  var c = document.createElement("canvas");
+  c.width = c.height = size;
+  var x = c.getContext("2d");
+  x.fillStyle = "rgba(255,255,255,0.05)";
+  for (var i = 0; i < size * 2; i++) {
+    x.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+  }
+  x.strokeStyle = "rgba(10,16,38,0.35)";
+  x.lineWidth = 1;
+  var step = size / 4;
+  for (var gx = step; gx < size; gx += step) {
+    x.beginPath(); x.moveTo(gx, 0); x.lineTo(gx, size); x.stroke();
+  }
+  for (var gy = step; gy < size; gy += step) {
+    x.beginPath(); x.moveTo(0, gy); x.lineTo(size, gy); x.stroke();
+  }
+  x.fillStyle = "rgba(210,235,255,0.18)";
+  for (var nx = step; nx < size; nx += step) {
+    for (var ny = step; ny < size; ny += step) {
+      x.fillRect(nx - 1, ny - 1, 2, 2);
+    }
+  }
+  return c;
+}
+
+var SPRITES = {
+  shipGlow: makeGlow("rgba(94,230,255,0.5)", 96),
+  missileGlow: makeGlow("rgba(150,205,255,0.5)", 72),
+  hitGlow: makeGlow("rgba(255,140,90,0.85)", 128),
+  engineGlow: makeGlow("rgba(120,220,255,0.85)", 64),
+  smokePuff: makeGlow("rgba(168,177,201,0.9)", 64),
+  straightGlow: makeGlow("rgba(255,120,110,0.5)", 72),
+  warnGlowRed: makeGlow("rgba(255,72,84,0.85)", 96),
+  warnGlowWhite: makeGlow("rgba(235,244,255,0.8)", 96),
+  shipTex: makePanelTexture(64)
+};
+
+// ============================================================
+// РАЗДЕЛ J-3 · ЗВЁЗДНАЯ СИСТЕМА (поле в духе agar.io)
+// В центре пылает солнце, вокруг него по орбитам ходят планеты.
+// Поле жёстко ограничено: за краем — пустота, а сама граница
+// отчёркнута как лист школьной тетради в клетку — синяя клетка,
+// красная поля и двойная рамка. Солнце сжигает всё в короне,
+// а над планетами можно пролетать: их гравитация сдувает с курса
+// и корабль, и торпеды; камни о поверхность разбиваются на осколки.
+// Сквозь стены торпеды улетают навылет —
+// граница держит только корабль и камни.
+// Поле поделено на зоны безопасности как в EVE Online: центр —
+// безопасное «ядро», дальше уровень падает, у края — «нули».
+// ============================================================
+var System = {
+  t: 0,        // собственные часы системы (планеты ходят даже в меню)
+  planets: [], // текущие позиции планет, пересчитываются в update()
+
+  init: function () {
+    var SY = CONFIG.system;
+    this.t = 0;
+    this.planets.length = 0;
+    for (var i = 0; i < SY.planets.length; i++) {
+      var p = SY.planets[i];
+      this.planets.push({
+        orbit: p.orbit, size: p.size, speed: p.speed, phase: p.phase,
+        c1: p.c1, c2: p.c2, c3: p.c3, ring: !!p.ring,
+        x: 0, y: 0
+      });
+    }
+    this.update(0); // сразу ставим планеты на стартовые места
+  },
+
+  update: function (dt) {
+    this.t += dt;
+    for (var i = 0; i < this.planets.length; i++) {
+      var p = this.planets[i];
+      var a = p.phase + this.t * p.speed;
+      p.x = Math.cos(a) * p.orbit;
+      p.y = Math.sin(a) * p.orbit;
+    }
+  },
+
+  // столкновение с солнцем или планетой:
+  // "sun" — опасная корона, объект-планета — касание планеты, null — чисто
+  hit: function (x, y, r) {
+    var SY = CONFIG.system;
+    if (dist2(x, y, 0, 0) < SY.sun.kill * SY.sun.kill) return "sun";
+    for (var i = 0; i < this.planets.length; i++) {
+      var p = this.planets[i];
+      var rr = p.size * 0.92 + r;
+      if (dist2(x, y, p.x, p.y) < rr * rr) return p;
+    }
+    return null;
+  },
+
+  // индекс зоны безопасности по точке: расстояние от солнца сверяем
+  // с внешними границами зон (от центра — к краю)
+  zoneAt: function (x, y) {
+    var zones = CONFIG.system.zones;
+    var d = Math.sqrt(x * x + y * y);
+    for (var i = 0; i < zones.length; i++) {
+      if (d < zones[i].r) return i;
+    }
+    return zones.length - 1;
+  },
+
+  // точка за жёсткой границей (с учётом радиуса объекта)
+  outside: function (x, y, r) {
+    var B = CONFIG.system.bounds - r;
+    return x < -B || x > B || y < -B || y > B;
+  },
+
+  // стенка для корабля: позиция упирается в край, скорость вдоль
+  // нормали гасится — корабль скользит по границе
+  slide: function (o, r) {
+    var B = CONFIG.system.bounds - r;
+    if (o.x < -B) { o.x = -B; if (o.vx < 0) o.vx = 0; }
+    else if (o.x > B) { o.x = B; if (o.vx > 0) o.vx = 0; }
+    if (o.y < -B) { o.y = -B; if (o.vy < 0) o.vy = 0; }
+    else if (o.y > B) { o.y = B; if (o.vy > 0) o.vy = 0; }
+  },
+
+  // упругая стенка для камней: позиция и скорость отражаются
+  reflect: function (o, r) {
+    var B = CONFIG.system.bounds - r;
+    var hit = false;
+    if (o.x < -B) { o.x = -B; o.vx = Math.abs(o.vx); hit = true; }
+    else if (o.x > B) { o.x = B; o.vx = -Math.abs(o.vx); hit = true; }
+    if (o.y < -B) { o.y = -B; o.vy = Math.abs(o.vy); hit = true; }
+    else if (o.y > B) { o.y = B; o.vy = -Math.abs(o.vy); hit = true; }
+    return hit;
+  },
+
+  // втиснуть точку внутрь поля (новые камни, пуск торпед)
+  clampPoint: function (o, r) {
+    var B = CONFIG.system.bounds - r;
+    if (o.x < -B) o.x = -B; else if (o.x > B) o.x = B;
+    if (o.y < -B) o.y = -B; else if (o.y > B) o.y = B;
+  },
+
+  // ---------- отрисовка: тетрадное поле, солнце, планеты ----------
+  draw: function (ctx, t) {
+    var SY = CONFIG.system;
+    var B = SY.bounds;
+
+    // видимая область мира (с запасом) — рисуем только то, что в кадре
+    var hv = Math.hypot(Camera.w, Camera.h) / 2 / Camera.zoom + 80;
+    var x0 = Math.max(-B, Camera.x - hv), x1 = Math.min(B, Camera.x + hv);
+    var y0 = Math.max(-B, Camera.y - hv), y1 = Math.min(B, Camera.y + hv);
+
+    if (x1 > x0 && y1 > y0) {
+      // «страница тетради»: чуть более плотная подложка внутри границы
+      ctx.fillStyle = "rgba(24,34,76,0.55)";
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+
+      // тетрадная клетка: каждая пятая линия — жирнее, как в реальной тетради
+      var g = SY.grid;
+      var gx = Math.ceil(x0 / g) * g;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (var x = gx; x <= x1; x += g) {
+        if (Math.round(x / g) % 5 === 0) continue;
+        ctx.moveTo(x, y0); ctx.lineTo(x, y1);
+      }
+      ctx.strokeStyle = "rgba(112,162,255,0.09)";
+      ctx.stroke();
+      ctx.beginPath();
+      for (var x2 = gx; x2 <= x1; x2 += g) {
+        if (Math.round(x2 / g) % 5 !== 0) continue;
+        ctx.moveTo(x2, y0); ctx.lineTo(x2, y1);
+      }
+      ctx.strokeStyle = "rgba(112,162,255,0.2)";
+      ctx.stroke();
+      var gy = Math.ceil(y0 / g) * g;
+      ctx.beginPath();
+      for (var y = gy; y <= y1; y += g) {
+        if (Math.round(y / g) % 5 === 0) continue;
+        ctx.moveTo(x0, y); ctx.lineTo(x1, y);
+      }
+      ctx.strokeStyle = "rgba(112,162,255,0.09)";
+      ctx.stroke();
+      ctx.beginPath();
+      for (var y2 = gy; y2 <= y1; y2 += g) {
+        if (Math.round(y2 / g) % 5 !== 0) continue;
+        ctx.moveTo(x0, y2); ctx.lineTo(x1, y2);
+      }
+      ctx.strokeStyle = "rgba(112,162,255,0.2)";
+      ctx.stroke();
+
+      // красная поля — отступ от края, как на страницах школьной тетради
+      ctx.strokeStyle = "rgba(255,92,108,0.55)";
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(-B + 24, -B + 24, (B - 24) * 2, (B - 24) * 2);
+      // двойная внешняя рамка поля
+      ctx.strokeStyle = "rgba(132,176,255,0.7)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-B, -B, B * 2, B * 2);
+      ctx.strokeStyle = "rgba(132,176,255,0.26)";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-B + 9, -B + 9, (B - 9) * 2, (B - 9) * 2);
+
+      // границы секторов безопасности: пунктирные окружности вокруг
+      // солнца; цвет черты — та зона, в которую попадёшь за ней
+      var dc = Math.hypot(Camera.x, Camera.y);
+      for (var zi = 0; zi < SY.zones.length - 1; zi++) {
+        var zr = SY.zones[zi].r;
+        if (dc > hv + zr || dc < zr - hv) continue;
+        ctx.globalAlpha = 0.34 + 0.12 * Math.sin(t * 1.4 + zi * 2.1);
+        ctx.strokeStyle = SY.zones[zi + 1].color;
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([12, 16]);
+        ctx.beginPath();
+        ctx.arc(0, 0, zr, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // солнце: пульсирующая корона, ядро и штриховой круг опасной зоны
+    if (Math.hypot(Camera.x, Camera.y) < hv + SY.sun.kill * 2.2) {
+      var pulse = 1 + 0.025 * Math.sin(t * 1.7) + 0.015 * Math.sin(t * 3.7);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.5;
+      var gs = SY.sun.kill * 3.4 * pulse;
+      ctx.drawImage(this.sunGlow, -gs / 2, -gs / 2, gs, gs);
+      ctx.globalAlpha = 1;
+      var cs = SY.sun.r * 2.5 * pulse;
+      ctx.drawImage(this.sunCore, -cs / 2, -cs / 2, cs, cs);
+      ctx.globalCompositeOperation = "source-over";
+
+      ctx.globalAlpha = 0.45 + 0.15 * Math.sin(t * 2.6);
+      ctx.strokeStyle = "rgba(255,110,90,0.85)";
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([9, 11]);
+      ctx.beginPath();
+      ctx.arc(0, 0, SY.sun.kill, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
+    // планеты: дневная сторона подсвечена солнцем, ночная в тени
+    for (var i = 0; i < this.planets.length; i++) {
+      var p = this.planets[i];
+      if (Math.hypot(p.x - Camera.x, p.y - Camera.y) > hv + p.size * 2.2) continue;
+      var ang = Math.atan2(p.y, p.x);
+      var lx = -Math.cos(ang), ly = -Math.sin(ang);
+
+      if (p.ring) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(0.5);
+        ctx.scale(1, 0.38);
+        ctx.strokeStyle = "rgba(255,226,180,0.4)";
+        ctx.lineWidth = p.size * 0.28;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 1.75, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      var pg = ctx.createRadialGradient(
+        p.x + lx * p.size * 0.5, p.y + ly * p.size * 0.5, p.size * 0.12,
+        p.x, p.y, p.size * 1.02
+      );
+      pg.addColorStop(0, p.c1);
+      pg.addColorStop(0.55, p.c2);
+      pg.addColorStop(1, p.c3);
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, TAU);
+      ctx.fill();
+
+      // мягкая тень на ночной стороне
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, TAU);
+      ctx.clip();
+      var sh = ctx.createRadialGradient(
+        p.x - lx * p.size * 0.9, p.y - ly * p.size * 0.9, p.size * 0.2,
+        p.x - lx * p.size * 0.9, p.y - ly * p.size * 0.9, p.size * 1.6
+      );
+      sh.addColorStop(0, "rgba(5,8,22,0.55)");
+      sh.addColorStop(1, "rgba(5,8,22,0)");
+      ctx.fillStyle = sh;
+      ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+      ctx.restore();
+
+      // тонкий атмосферный ободок
+      ctx.strokeStyle = "rgba(190,220,255,0.26)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size + 1.2, 0, TAU);
+      ctx.stroke();
+    }
+  }
+};
+
+// спрайты солнца — pre-render один раз (как свечения и текстуры)
+System.sunGlow = makeGlow("rgba(255,176,84,0.9)", 512);
+System.sunCore = (function () {
+  var S = 256;
+  var c = document.createElement("canvas");
+  c.width = c.height = S;
+  var x = c.getContext("2d");
+  var g = x.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  g.addColorStop(0, "rgba(255,250,225,1)");
+  g.addColorStop(0.35, "rgba(255,214,120,1)");
+  g.addColorStop(0.62, "rgba(255,150,60,0.95)");
+  g.addColorStop(0.85, "rgba(255,110,40,0.4)");
+  g.addColorStop(1, "rgba(255,100,30,0)");
+  x.fillStyle = g;
+  x.fillRect(0, 0, S, S);
+  return c;
+})();
+
+// ============================================================
+// РАЗДЕЛ J-3 · УПРАВЛЕНИЕ: КЛАВИАТУРА + СЕНСОРНЫЙ ЭКРАН
+// Палец/мышь работают как "плавающий" джойстик: нажал в любом
+// месте canvas — от этой точки пошёл вектор тяги.
+// ============================================================
+var Input = (function () {
+  var keys = Object.create(null);
+  var touch = { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0, radius: 58, dead: 10 };
+  var KEYMAP = {
+    ArrowUp: "up", KeyW: "up",
+    ArrowDown: "down", KeyS: "down",
+    ArrowLeft: "left", KeyA: "left",
+    ArrowRight: "right", KeyD: "right"
+  };
+
+  window.addEventListener("keydown", function (e) {
+    var k = KEYMAP[e.code];
+    if (k) { keys[k] = true; e.preventDefault(); }
+    if (!e.repeat && (e.code === "Enter" || e.code === "Space")) {
+      e.preventDefault();
+      UI.primary();
+    }
+  });
+  window.addEventListener("keyup", function (e) {
+    var k = KEYMAP[e.code];
+    if (k) keys[k] = false;
+  });
+  window.addEventListener("blur", function () {
+    keys = Object.create(null);
+    touch.active = false;
+    touch.id = -1;
+  });
+
+  var canvas = document.getElementById("game");
+
+  canvas.addEventListener("pointerdown", function (e) {
+    if (touch.active) return;
+    touch.active = true;
+    touch.id = e.pointerId;
+    touch.ox = e.clientX; touch.oy = e.clientY;
+    touch.x = e.clientX; touch.y = e.clientY;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+    e.preventDefault();
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!touch.active || e.pointerId !== touch.id) return;
+    touch.x = e.clientX; touch.y = e.clientY;
+    e.preventDefault();
+  });
+  function endTouch(e) {
+    if (e.pointerId !== touch.id) return;
+    touch.active = false;
+    touch.id = -1;
+  }
+  canvas.addEventListener("pointerup", endTouch);
+  canvas.addEventListener("pointercancel", endTouch);
+
+  // итоговый вектор тяги: клавиатура + джойстик, длина нормирована к 1
+  function vector() {
+    var x = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    var y = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+    if (touch.active) {
+      var dx = touch.x - touch.ox, dy = touch.y - touch.oy;
+      var d = Math.hypot(dx, dy);
+      if (d > touch.dead) {
+        var k = Math.min(1, (d - touch.dead) / (touch.radius - touch.dead));
+        x += (dx / d) * k;
+        y += (dy / d) * k;
+      }
+    }
+    var len = Math.hypot(x, y);
+    if (len > 1) { x /= len; y /= len; }
+    return { x: x, y: y, any: len > 0.01 };
+  }
+
+  return { vector: vector, touch: touch };
+})();
+
+// ============================================================
+// РАЗДЕЛ J-4 · КАМЕРА И КОСМИЧЕСКИЙ ФОН (параллакс)
+// ============================================================
+var Camera = {
+  x: 0, y: 0, w: 0, h: 0, shake: 0,
+  zoom: 1, baseZoom: 1,
+  reset: function (x, y) { this.x = x; this.y = y; this.shake = 0; },
+  // адаптивный зум под размер экрана: на маленьких экранах мир
+  // отъезжает, чтобы вокруг корабля было видно столько же пространства,
+  // сколько на ПК (ракеты, камни, маркеры — всё в кадре)
+  setViewport: function (w, h) {
+    this.w = w; this.h = h;
+    var Z = CONFIG.camera.zoom;
+    var k = Math.sqrt((w * h) / (Z.refW * Z.refH));
+    this.baseZoom = clamp(k, Z.min, Z.max);
+  },
+  update: function (dt, player) {
+    // камера смотрит чуть вперёд по вектору скорости — видно, куда летишь
+    var tx = player.x + player.vx * CONFIG.camera.lead;
+    var ty = player.y + player.vy * CONFIG.camera.lead;
+    var k = 1 - Math.exp(-CONFIG.camera.lerp * dt);
+    this.x += (tx - this.x) * k;
+    this.y += (ty - this.y) * k;
+    this.shake *= Math.exp(-CONFIG.camera.shakeDecay * dt);
+    if (this.shake < 0.05) this.shake = 0;
+    // на разгоне камера плавно отъезжает — виднее, что впереди
+    var sp = clamp(Math.hypot(player.vx, player.vy) / CONFIG.player.maxSpeed, 0, 1);
+    var target = this.baseZoom * (1 - CONFIG.camera.zoom.speed * sp);
+    this.zoom += (target - this.zoom) * (1 - Math.exp(-CONFIG.camera.zoom.ease * dt));
+  },
+  addShake: function (v) { this.shake = Math.min(26, this.shake + v); }
+};
+
+var Starfield = (function () {
+  var TILE = 1000;
+  var layers = [
+    { p: 0.14, n: 80, size: [0.7, 1.5], alpha: 0.5, stars: [] },
+    { p: 0.34, n: 55, size: [1.0, 2.0], alpha: 0.72, stars: [] },
+    { p: 0.6,  n: 30, size: [1.5, 2.8], alpha: 0.95, stars: [] }
+  ];
+  layers.forEach(function (L) {
+    for (var i = 0; i < L.n; i++) {
+      L.stars.push({
+        x: Math.random() * TILE,
+        y: Math.random() * TILE,
+        r: rand(L.size[0], L.size[1]),
+        a: L.alpha * rand(0.5, 1),
+        tw: Math.random() * TAU,
+        hue: Math.random() < 0.14 ? (Math.random() < 0.5 ? "150,220,255" : "255,205,160") : "208,224,255"
+      });
+    }
+  });
+
+  // туманности: 3-4 мягких пятна, отрисованные один раз в offscreen-канву
+  var NEB = 1200;
+  var neb = document.createElement("canvas");
+  neb.width = neb.height = NEB;
+  (function () {
+    var c = neb.getContext("2d");
+    var blobs = [
+      [300, 300, 400, "rgba(64,84,200,0.16)"],
+      [830, 620, 440, "rgba(140,60,190,0.13)"],
+      [520, 920, 370, "rgba(30,140,190,0.12)"],
+      [1010, 180, 300, "rgba(255,110,90,0.07)"]
+    ];
+    for (var i = 0; i < blobs.length; i++) {
+      var g = c.createRadialGradient(blobs[i][0], blobs[i][1], 0, blobs[i][0], blobs[i][1], blobs[i][2]);
+      g.addColorStop(0, blobs[i][3]);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, NEB, NEB);
+    }
+  })();
+
+  function draw(ctx, cam, t) {
+    var nx = Math.ceil(cam.w / TILE) + 1;
+    var ny = Math.ceil(cam.h / TILE) + 1;
+
+    // туманность — самый медленный слой
+    var np = 0.08;
+    var ox = ((-cam.x * np) % NEB + NEB) % NEB;
+    var oy = ((-cam.y * np) % NEB + NEB) % NEB;
+    for (var tx = -1; tx < nx; tx++) {
+      for (var ty = -1; ty < ny; ty++) {
+        ctx.drawImage(neb, ox + tx * NEB, oy + ty * NEB);
+      }
+    }
+
+    // звёзды, три слоя параллакса, мерцание
+    for (var li = 0; li < layers.length; li++) {
+      var L = layers[li];
+      var lx = ((-cam.x * L.p) % TILE + TILE) % TILE;
+      var ly = ((-cam.y * L.p) % TILE + TILE) % TILE;
+      for (var si = 0; si < L.stars.length; si++) {
+        var s = L.stars[si];
+        var tw = 0.75 + 0.25 * Math.sin(t * 1.7 + s.tw);
+        ctx.globalAlpha = s.a * tw;
+        ctx.fillStyle = "rgb(" + s.hue + ")";
+        for (var qx = -1; qx < nx; qx++) {
+          var X = s.x + lx + qx * TILE;
+          if (X < -3 || X > cam.w + 3) continue;
+          for (var qy = -1; qy < ny; qy++) {
+            var Y = s.y + ly + qy * TILE;
+            if (Y < -3 || Y > cam.h + 3) continue;
+            ctx.fillRect(X - s.r / 2, Y - s.r / 2, s.r, s.r);
+          }
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  return { draw: draw };
+})();
+
+// ============================================================
+// РАЗДЕЛ J-5 · КОРАБЛЬ ИГРОКА
+// Инерционная тяга с ДВУМЯ режимами поворота. Спокойные манёвры
+// (курс отличается меньше чем на turnHardAngle = 135°) — плавный
+// доворот носа, послушный и без жёсткой дуги. А вот крутой разворот
+// (больше 135°) включается СТРОГИЙ КРУГ с личным радиусом корабля
+// (CONFIG.player.turnRadius): нос идёт с угловой скоростью v/R,
+// разворот на 180° — всегда полукруг этого радиуса. Тяга работает
+// строго по носу, боковой снос гасится сцеплением. На месте корабль
+// почти не крутится (turnOmegaMin) — вираж планируй заранее.
+// ============================================================
+var Player = {
+  x: 0, y: 0, vx: 0, vy: 0,
+  angle: -Math.PI / 2,
+  thrust: 0,
+  alive: true,
+  engine: [],
+  turnDir: 0,  // сторона текущего виража: -1 влево / +1 вправо / 0 прямо
+  turnGlow: 0, // сила виража 0..1 — ярче видно личный круг разворота
+
+  reset: function () {
+    this.x = CONFIG.system.spawn.x; this.y = CONFIG.system.spawn.y;
+    this.vx = 0; this.vy = 0;
+    this.angle = -Math.PI / 2;
+    this.thrust = 0;
+    this.alive = true;
+    this.engine.length = 0;
+    this.turnDir = 0;
+    this.turnGlow = 0;
+  },
+
+  update: function (dt) {
+    var P = CONFIG.player;
+    var v = Input.vector();
+
+    // ДВА РЕЖИМА ПОВОРОТА. Пока курс отличается меньше чем на 135°
+    // (turnHardAngle) — спокойный доворот: скорость растёт от
+    // turnOmegaMin до полной круговой, переход без рывка. Круче 135° —
+    // включается личный круг: угловая скорость v/R, разворот на 180°
+    // всегда описывает полукруг радиуса turnRadius.
+    var sp = Math.hypot(this.vx, this.vy);
+    var want = v.any ? Math.atan2(v.y, v.x) : this.angle;
+    var diff = angleDiff(this.angle, want);
+    var ad = Math.abs(diff);
+    var HARD = P.turnHardAngle * Math.PI / 180;
+    var omCirc = Math.max(sp / P.turnRadius, P.turnOmegaMin);
+    var omega = ad < HARD
+      ? P.turnOmegaMin + (omCirc - P.turnOmegaMin) * (ad / HARD)
+      : omCirc;
+    var applied = clamp(diff, -omega * dt, omega * dt);
+    this.angle += applied;
+    this.turnDir = applied > 0 ? 1 : applied < 0 ? -1 : 0;
+    // подсветка личного круга — только когда вираж по-настоящему крутой
+    this.turnGlow = clamp((ad - HARD) / 0.24, 0, 1) * clamp(sp / 110, 0, 1);
+
+    // тяга работает строго по носу: газуем туда, куда смотрит корабль,
+    // поэтому встречный курс не разворачивает вектор мгновенно
+    if (v.any) {
+      var fx = Math.cos(this.angle), fy = Math.sin(this.angle);
+      this.vx += fx * P.accel * dt;
+      this.vy += fy * P.accel * dt;
+    }
+
+    var f = expDecay(P.friction, dt);
+    this.vx *= f;
+    this.vy *= f;
+
+    var sp2 = Math.hypot(this.vx, this.vy);
+    if (sp2 > P.maxSpeed) {
+      this.vx = (this.vx / sp2) * P.maxSpeed;
+      this.vy = (this.vy / sp2) * P.maxSpeed;
+      sp2 = P.maxSpeed;
+    }
+
+    // сцепление с курсом: боковой снос быстро гасится, траектория —
+    // дуга круга разворота (крутой вираж ещё и съедает скорость)
+    var fx2 = Math.cos(this.angle), fy2 = Math.sin(this.angle);
+    var vf = this.vx * fx2 + this.vy * fy2;
+    var lx = this.vx - fx2 * vf, ly = this.vy - fy2 * vf;
+    var g = expDecay(P.lateralGrip, dt);
+    this.vx = fx2 * vf + lx * g;
+    this.vy = fy2 * vf + ly * g;
+
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // жёсткая граница системы: корабль упирается в «тетрадную» стену
+    // и скользит вдоль неё — за край не выйти
+    System.slide(this, P.radius);
+
+    this.thrust = v.any ? Math.min(1, this.thrust + 8 * dt) : Math.max(0, this.thrust - 6 * dt);
+    if (this.thrust > 0.05 && this.alive) this.emitEngine(dt);
+
+    // частицы двигателя живут своей жизнью
+    var drag = expDecay(0.25, dt);
+    for (var i = this.engine.length - 1; i >= 0; i--) {
+      var p = this.engine[i];
+      p.life -= dt;
+      if (p.life <= 0) { this.engine.splice(i, 1); continue; }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= drag;
+      p.vy *= drag;
+    }
+  },
+
+  emitEngine: function (dt) {
+    var n = CONFIG.player.flameRate * dt * this.thrust;
+    var count = Math.floor(n) + (Math.random() < n % 1 ? 1 : 0);
+    for (var i = 0; i < count; i++) {
+      var back = this.angle + Math.PI + rand(-0.3, 0.3);
+      var sp = rand(110, 210);
+      this.engine.push({
+        x: this.x - Math.cos(this.angle) * 16,
+        y: this.y - Math.sin(this.angle) * 11,
+        vx: Math.cos(back) * sp - this.vx * 0.2,
+        vy: Math.sin(back) * sp - this.vy * 0.2,
+        life: rand(0.25, 0.5),
+        maxLife: 0.5,
+        size: rand(1.6, 3.4)
+      });
+    }
+  },
+
+  draw: function (ctx, t) {
+    // личный круг разворота: видно только на КРУТОМ вираже (после
+    // порога 135°), когда корабль реально пошёл по личной дуге
+    if (this.turnGlow > 0.02) {
+      var R = CONFIG.player.turnRadius;
+      var ca = this.angle - this.turnDir * Math.PI / 2; // центр кривизны
+      ctx.save();
+      ctx.globalAlpha = 0.16 * this.turnGlow;
+      ctx.strokeStyle = "#5ee6ff";
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 9]);
+      ctx.beginPath();
+      ctx.arc(this.x + Math.cos(ca) * R, this.y + Math.sin(ca) * R, R, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // свечение частиц двигателя (аддитивно)
+    ctx.globalCompositeOperation = "lighter";
+    for (var i = 0; i < this.engine.length; i++) {
+      var p = this.engine[i];
+      var k = p.life / p.maxLife;
+      ctx.globalAlpha = k * 0.85;
+      ctx.fillStyle = "#7fd4ff";
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // ореол корабля
+    ctx.globalAlpha = 0.5 + 0.25 * this.thrust;
+    ctx.drawImage(SPRITES.shipGlow, -48, -48);
+    ctx.globalAlpha = 1;
+
+    ctx.rotate(this.angle);
+
+    // факел двигателя: внешняя оболочка + белое ядро, живое мерцание
+    if (this.thrust > 0.03) {
+      var flick = 0.72 + 0.28 * Math.sin(t * 41) + 0.1 * Math.sin(t * 97);
+      var fl = (9 + 21 * this.thrust) * flick;
+      var g = ctx.createLinearGradient(-14, 0, -14 - fl, 0);
+      g.addColorStop(0, "rgba(150,235,255,0.95)");
+      g.addColorStop(0.45, "rgba(80,180,255,0.5)");
+      g.addColorStop(1, "rgba(80,160,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-14, -4.4);
+      ctx.quadraticCurveTo(-14 - fl * 0.6, -2.8, -14 - fl, 0);
+      ctx.quadraticCurveTo(-14 - fl * 0.6, 2.8, -14, 4.4);
+      ctx.closePath();
+      ctx.fill();
+      var g2 = ctx.createLinearGradient(-14, 0, -14 - fl * 0.55, 0);
+      g2.addColorStop(0, "rgba(246,252,255,0.95)");
+      g2.addColorStop(1, "rgba(190,235,255,0)");
+      ctx.fillStyle = g2;
+      ctx.beginPath();
+      ctx.moveTo(-14, -2);
+      ctx.quadraticCurveTo(-14 - fl * 0.3, -1, -14 - fl * 0.55, 0);
+      ctx.quadraticCurveTo(-14 - fl * 0.3, 1, -14, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.5 + 0.4 * this.thrust;
+      var gw = 26 + 30 * this.thrust * flick;
+      ctx.drawImage(SPRITES.engineGlow, -14 - gw * 0.42, -gw / 2, gw, gw);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+
+    // тень корпуса — дешёвый объём
+    ctx.save();
+    ctx.translate(0, 2.6);
+    hullPath(ctx);
+    ctx.fillStyle = "rgba(4,7,20,0.55)";
+    ctx.fill();
+    ctx.restore();
+
+    // крылья: стреловидные пластины со световой гранью
+    wingPath(ctx, -1);
+    var wg = ctx.createLinearGradient(0, -14, 0, -4);
+    wg.addColorStop(0, "#93a5cd");
+    wg.addColorStop(1, "#5d6d96");
+    ctx.fillStyle = wg;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(94,230,255,0.45)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    wingPath(ctx, 1);
+    var wg2 = ctx.createLinearGradient(0, 4, 0, 14);
+    wg2.addColorStop(0, "#4b5980");
+    wg2.addColorStop(1, "#7e90ba");
+    ctx.fillStyle = wg2;
+    ctx.fill();
+    ctx.stroke();
+
+    // мигающие навигационные огни на законцовках
+    ctx.globalAlpha = Math.sin(t * 4.6) > 0.15 ? 1 : 0.2;
+    ctx.fillStyle = "#5ee6ff";
+    ctx.beginPath(); ctx.arc(-10, -13.1, 1.5, 0, TAU); ctx.fill();
+    ctx.globalAlpha = Math.sin(t * 4.6 + Math.PI) > 0.15 ? 1 : 0.2;
+    ctx.fillStyle = "#ffb37a";
+    ctx.beginPath(); ctx.arc(-10, 13.1, 1.5, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // антенна с маячком (корень скрыт корпусом)
+    ctx.strokeStyle = "rgba(190,205,235,0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(8, -3.4);
+    ctx.lineTo(12.5, -8.5);
+    ctx.stroke();
+    ctx.fillStyle = Math.sin(t * 6) > 0 ? "rgba(255,120,130,0.95)" : "rgba(255,120,130,0.25)";
+    ctx.beginPath(); ctx.arc(12.5, -8.5, 1.1, 0, TAU); ctx.fill();
+
+    // корпус: свет сверху, тень снизу
+    hullPath(ctx);
+    var hg = ctx.createLinearGradient(0, -8, 0, 8);
+    hg.addColorStop(0, "#f4f8ff");
+    hg.addColorStop(0.5, "#d3def2");
+    hg.addColorStop(1, "#9db0d6");
+    ctx.fillStyle = hg;
+    ctx.fill();
+
+    // процедурная текстура обшивки: панели, заклёпки, шум
+    ctx.save();
+    hullPath(ctx);
+    ctx.clip();
+    ctx.globalAlpha = 0.8;
+    ctx.drawImage(SPRITES.shipTex, -16, -16);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    hullPath(ctx);
+    ctx.strokeStyle = "rgba(94,230,255,0.9)";
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+
+    // неоновый хребет
+    ctx.strokeStyle = "rgba(94,230,255,0.25)";
+    ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(11, 0); ctx.stroke();
+    ctx.strokeStyle = "rgba(222,250,255,0.95)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(11, 0); ctx.stroke();
+
+    // пульсирующее энергоядро
+    var pulse = 2 + 0.6 * Math.sin(t * 5.5);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(SPRITES.engineGlow, -1 - pulse * 3, -pulse * 3, pulse * 6, pulse * 6);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#c9f6ff";
+    ctx.beginPath(); ctx.arc(-1, 0, pulse * 0.55, 0, TAU); ctx.fill();
+
+    // кабина: округлый пузырь-купол, острых граней нет
+    var cg = ctx.createLinearGradient(3, -3.6, 10.5, 3.6);
+    cg.addColorStop(0, "#eafcff");
+    cg.addColorStop(0.45, "#25c8ef");
+    cg.addColorStop(1, "#0b4d8f");
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(10.5, 0);
+    ctx.bezierCurveTo(10.3, -3.3, 7.3, -4.5, 5.3, -3.2);
+    ctx.bezierCurveTo(3.6, -2.2, 3.1, -1.2, 3.1, 0);
+    ctx.bezierCurveTo(3.1, 1.2, 3.6, 2.2, 5.3, 3.2);
+    ctx.bezierCurveTo(7.3, 4.5, 10.3, 3.3, 10.5, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath(); ctx.arc(7.3, -1.3, 1.05, 0, TAU); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath(); ctx.arc(5.8, 1.5, 0.6, 0, TAU); ctx.fill();
+
+    // сопловой блок с двумя форсунками
+    ctx.fillStyle = "#39415e";
+    ctx.fillRect(-16, -4.6, 4.6, 9.2);
+    ctx.strokeStyle = "rgba(18,24,46,0.85)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-16, -4.6, 4.6, 9.2);
+    ctx.fillStyle = this.thrust > 0.05 ? "rgba(150,230,255,0.95)" : "#57628a";
+    ctx.beginPath(); ctx.arc(-11.9, -2.3, 1.3, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-11.9, 2.3, 1.3, 0, TAU); ctx.fill();
+
+    // коралловый носовой обтекатель — casual-акцент
+    var ng = ctx.createLinearGradient(12, -2.7, 18, 2.7);
+    ng.addColorStop(0, "#ffb27a");
+    ng.addColorStop(1, "#ff6a3d");
+    ctx.fillStyle = ng;
+    ctx.beginPath();
+    ctx.moveTo(18, 0);
+    ctx.lineTo(12.2, -2.7);
+    ctx.lineTo(12.2, 2.7);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+};
+
+// силуэт корпуса (нос по +x)
+function hullPath(ctx) {
+  ctx.beginPath();
+  ctx.moveTo(18, 0);
+  ctx.lineTo(8, -5.5);
+  ctx.lineTo(-6, -7.5);
+  ctx.lineTo(-12, -5);
+  ctx.lineTo(-12, 5);
+  ctx.lineTo(-6, 7.5);
+  ctx.lineTo(8, 5.5);
+  ctx.closePath();
+}
+
+// стреловидное крыло, side = -1 верх / 1 низ
+function wingPath(ctx, side) {
+  ctx.beginPath();
+  ctx.moveTo(4, side * 4.5);
+  ctx.lineTo(-7, side * 14);
+  ctx.lineTo(-13, side * 12.5);
+  ctx.lineTo(-8.5, side * 5);
+  ctx.closePath();
+}
+
+// ============================================================
+// РАЗДЕЛ J-6 · ТОРПЕДЫ: ОХОТНИКИ, ПРОЛЁТКИ, ПОДРЫВ О КАМНИ
+//
+// Два типа торпед:
+//  1) охотники — преследуют игрока: вектор тяги доворачивается
+//     к цели с ОГРАНИЧЕННОЙ угловой скоростью, только плавные
+//     дуги, как у космических тел, которым нужен импульс;
+//  2) пролётки — редкие группы 1-4 штук, летят по прямой
+//     навылет через поле. Сначала у края горит красный "!",
+//     ракет ещё НЕТ; когда предупреждение гаснет, курс наводится
+//     на текущее место игрока (с упреждением по скорости) —
+//     и группа сразу влетает в кадр; направление вылета
+//     показывает красная стрелка у края. После спавна каждая
+//     пролётка рисует свой маршрут пунктиром цвета тетрадной
+//     доски — игрок заранее видит, где пролетит группа;
+//
+// ТРИ КЛАССА ОХОТНИКОВ (плюс базовый): малый юркий «малыш», ломящий
+// камни корпусом броневик «зубр» и баллистическая — идёт дугой и
+// детонирует при входе в радиус подрыва рядом с игроком. Доли классов
+// заданы в CONFIG.missile (smallChance / zubrChance / ballisticChance).
+//
+// УКЛОНЕНИЕ засчитывается каждой торпеде ровно один раз: пролетела
+// мимо игрока или взорвалась (о камень, о солнце, по износу
+// двигателя) — и не задела корабль (33-missiles.score).
+// Над планетами торпеды пролетают: сжигает только корона солнца.
+// Граница системы торпеды НЕ останавливает: они улетают навылет,
+// как честные снаряды. Стены держат только корабль и камни.
+// ============================================================
+var Missiles = {
+  list: [],
+  waves: 0,
+  replaceQueue: [], // моменты времени, когда взамен сгоревшей прилетит новая
+  lastAngle: null,  // сторона пуска предыдущей торпеды
+  straight: [],     // пролётные торпеды (летят по прямой)
+  straightWarn: null, // активное предупреждение о пролётках {a, until} — ракет ещё нет
+  straightArrow: null, // стрелка направления после вылета {a, dir, until}
+  nextStraight: 0,    // игровое время следующей волны пролёток
+
+  reset: function () {
+    this.list.length = 0;
+    this.waves = 0;
+    this.replaceQueue.length = 0;
+    this.lastAngle = null;
+    this.straight.length = 0;
+    this.straightWarn = null;
+    this.straightArrow = null;
+    var S = CONFIG.straight;
+    this.nextStraight = rand(S.everyMin, S.everyMax);
+  },
+
+  viewRadius: function () {
+    // сколько мира реально видно от центра экрана (с учётом зума)
+    return Math.hypot(Camera.w, Camera.h) / 2 / Camera.zoom;
+  },
+
+  // уклонение засчитывается каждой торпеде один раз: пролетела мимо
+  // или взорвалась, не задев игрока (считаем только в бою)
+  score: function (m, quiet) {
+    if (m.scored) return;
+    m.scored = true;
+    if (Game.state === "playing") Game.onDodge(m, quiet);
+  },
+
+  // подрыв баллистической: ударная волна в радиусе зоны; гибельно,
+  // только если игрок у самого центра взрыва
+  detonate: function (m, i, t) {
+    var M = CONFIG.missile;
+    var kill = M.blastKill + CONFIG.player.radius;
+    if (Game.state === "playing" && Player.alive &&
+        dist2(m.x, m.y, Player.x, Player.y) < kill * kill) {
+      Game.hit(m); // детонация в упор — гибель (Game.hit сам уберёт ракету)
+      return;
+    }
+    FX.blast(m.x, m.y, M.blastRadius);
+    FX.explosion(m.x, m.y, "#d2a6ff", 28, 430);
+    FX.explosion(m.x, m.y, CONFIG.colors.missileGlow, 18, 340);
+    Camera.addShake(12);
+    Sfx.blast();
+    this.score(m, true); // рванула рядом — уклонение
+    this.list.splice(i, 1);
+    this.replaceQueue.push(t + rand(2.5, 5));
+  },
+
+  // класс охотника: реже — зубры и баллистические, чаще — малые и базовые
+  pickClass: function () {
+    var M = CONFIG.missile;
+    var roll = Math.random();
+    if (roll < M.zubrChance) return "zubr";
+    if (roll < M.zubrChance + M.ballisticChance) return "ballistic";
+    if (roll < M.zubrChance + M.ballisticChance + M.smallChance) return "small";
+    return "hunter";
+  },
+
+  spawnOne: function (player, t) {
+    var M = CONFIG.missile;
+    // класс охотника: обычный / малый / зубр / баллистическая
+    var cls = this.pickClass();
+    var K = M.classes[cls];
+    var R = M.radius * K.r;
+    // каждая следующая торпеда приходит с другой стороны, чаще всего
+    // строго с противоположной — можно подставить одну под другую
+    var a = this.lastAngle === null
+      ? rand(0, TAU)
+      : this.lastAngle + Math.PI + rand(-M.spawnSpread, M.spawnSpread);
+    // пуск "за камерой": чуть дальше самой дальней точки экрана;
+    // точку пуска держим внутри поля и не на солнце
+    var d = this.viewRadius() + rand(60, 200);
+    var pos = { x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d };
+    System.clampPoint(pos, R + 6);
+    var tries = 0;
+    while (System.hit(pos.x, pos.y, R) && tries < 3) {
+      a += 2.1;
+      pos.x = player.x + Math.cos(a) * d;
+      pos.y = player.y + Math.sin(a) * d;
+      System.clampPoint(pos, R + 6);
+      tries++;
+    }
+    this.lastAngle = a;
+    var speedMul = rand(0.92, 1.08);
+
+    var m = {
+      x: pos.x,
+      y: pos.y,
+      speed: M.speed * K.speed * speedMul,
+      maxSpeed: M.maxSpeed * K.speed * speedMul,
+      steer: M.steer * K.steer,
+      r: R,
+      scale: K.scale,
+      trailW: K.trailW,
+      hp: K.hp,
+      blast: K.blast ? M.blastRadius : 0,
+      cls: cls,
+      heading: a + Math.PI, // нос сразу на игрока
+      born: t,
+      life: rand(M.lifetimeMin, M.lifetimeMax),
+      trail: [],
+      close: false,
+      scored: false,
+      seed: Math.random() * TAU
+    };
+    this.list.push(m);
+    Sfx.launch();
+    return m;
+  },
+
+  // Фаза 1: ТОЛЬКО предупреждение. Ракет ещё нет — фиксируем сторону,
+  // откуда прилетит группа, и держим "!" у края экрана.
+  warnStraight: function (t) {
+    this.straightWarn = { a: rand(0, TAU), until: t + CONFIG.straight.warnTime };
+    Sfx.alarm();
+  },
+
+  // расстояние до края экрана в направлении угла a, в мировых координатах (с зумом)
+  edgeDist: function (a) {
+    var ca = Math.abs(Math.cos(a)), sa = Math.abs(Math.sin(a));
+    var zm = Camera.zoom;
+    return Math.min(
+      ca > 1e-4 ? (Camera.w / 2) / (ca * zm) : 1e9,
+      sa > 1e-4 ? (Camera.h / 2) / (sa * zm) : 1e9
+    );
+  },
+
+  // Фаза 2: предупреждение истекло — вот ТЕПЕРЬ задаём курс. Пока
+  // горело "!", игрок сместился, поэтому старый прицел увёл бы группу
+  // мимо: целимся в его ТЕКУЩЕЕ место с упреждением по скорости —
+  // пролётки проходят рядом, но курс по-прежнему строго прямой.
+  launchStraight: function (player, t) {
+    var S = CONFIG.straight;
+    var M = CONFIG.missile;
+    var a = this.straightWarn.a;
+    var speed = rand(S.speedMin, S.speedMax);
+    // старт сразу за краем экрана: группа входит в кадр почти
+    // сразу после того, как погасло предупреждение
+    var d0 = this.edgeDist(a) + rand(24, 80);
+    var cx = player.x + Math.cos(a) * d0;
+    var cy = player.y + Math.sin(a) * d0;
+    // старт не на солнце: иначе вся группа мгновенно сгорит у кромки кадра
+    if (dist2(cx, cy, 0, 0) < (CONFIG.system.sun.kill + 70) * (CONFIG.system.sun.kill + 70)) {
+      var cd = Math.hypot(cx, cy) || 1;
+      var cr = CONFIG.system.sun.kill + 90;
+      cx = cx / cd * cr; cy = cy / cd * cr;
+    }
+    var d = Math.hypot(player.x - cx, player.y - cy) || 1;
+    var tt = d / speed; // сколько лететь до игрока
+    var tx = player.x + player.vx * tt * S.lead + rand(-S.aimJitter, S.aimJitter);
+    var ty = player.y + player.vy * tt * S.lead + rand(-S.aimJitter, S.aimJitter);
+    var aim = Math.atan2(ty - cy, tx - cx);
+    var n = S.groupMin + Math.floor(rand(0, S.groupMax - S.groupMin + 1));
+    var px = -Math.sin(aim), py = Math.cos(aim);
+    for (var i = 0; i < n; i++) {
+      var off = (i - (n - 1) / 2) * S.gap;
+      var st = {
+        x: cx + px * off, y: cy + py * off,
+        dx: Math.cos(aim), dy: Math.sin(aim),
+        heading: aim,
+        speed: speed * rand(0.97, 1.03),
+        born: t,
+        life: S.lifetime,
+        trail: [],
+        scored: false,
+        seed: Math.random() * TAU
+      };
+      this.straight.push(st);
+    }
+    // направление вылета показываем стрелкой у края ~1.5 с
+    this.straightArrow = { a: a, dir: aim, until: t + 1.5 };
+    this.straightWarn = null;
+    Sfx.launch();
+  },
+
+  update: function (dt, player, t, allowWaves) {
+    var M = CONFIG.missile;
+    var S = CONFIG.straight;
+
+    // волны охотников: на старте 1 ракета, затем 2-я и 3-я по таймеру
+    if (allowWaves && this.waves < M.maxRockets && t >= M.spawnMin + this.waves * M.waveEvery) {
+      this.waves++;
+      this.spawnOne(player, t);
+    }
+    // пополнение после самоликвидации
+    for (var q = this.replaceQueue.length - 1; q >= 0; q--) {
+      if (t >= this.replaceQueue[q]) {
+        this.replaceQueue.splice(q, 1);
+        this.spawnOne(player, t);
+      }
+    }
+
+    // редкие волны пролёток: сначала "!", после его истечения — вылет
+    if (allowWaves && t >= this.nextStraight && !this.straightWarn) {
+      this.warnStraight(t);
+    }
+    if (this.straightWarn && t >= this.straightWarn.until) {
+      if (allowWaves) {
+        this.launchStraight(player, t);
+        this.nextStraight = t + rand(S.everyMin, S.everyMax);
+      } else {
+        this.straightWarn = null; // игра прервана — предупреждение гаснет
+      }
+    }
+
+    for (var i = this.list.length - 1; i >= 0; i--) {
+      var m = this.list[i];
+      var age = t - m.born;
+
+      var dx = player.x - m.x, dy = player.y - m.y;
+      var d = Math.hypot(dx, dy) || 1;
+
+      if (age > M.reactionDelay) {
+        // наведение почти без упреждения: ракета целяется туда, где игрок ЕСТЬ,
+        // а не где он будет — резкий манёвр вбок уводит её с курса
+        var lead = clamp(d / (m.speed + 120), 0, 1.6) * 0.35;
+        var want = Math.atan2(player.y + player.vy * lead - m.y, player.x + player.vx * lead - m.x);
+        var diff = angleDiff(m.heading, want);
+        var turn = m.steer * dt; // физический предел: столько рад/с максимум
+        m.heading += clamp(diff * M.steerGain, -turn, turn);
+        m.speed = Math.min(m.maxSpeed, m.speed + M.accel * dt);
+      } else {
+        // только что стартовала — просто разгоняется по прямой
+        m.speed = Math.min(m.maxSpeed, m.speed + M.accel * 0.5 * dt);
+      }
+
+      m.x += Math.cos(m.heading) * m.speed * dt;
+      m.y += Math.sin(m.heading) * m.speed * dt;
+
+      // ресурс на исходе: двигатель дымит, чем ближе самоликвидация — тем гуще
+      if (m.life < M.smokeAt) {
+        var urg = 1 - m.life / M.smokeAt;
+        var em = M.smokeRate * (1 + 1.6 * urg) * dt;
+        var sc = Math.floor(em) + (Math.random() < em % 1 ? 1 : 0);
+        for (var sm = 0; sm < sc; sm++) {
+          var bk = m.heading + Math.PI + rand(-0.4, 0.4);
+          FX.puff(
+            m.x + Math.cos(bk) * 14, m.y + Math.sin(bk) * 14,
+            Math.cos(m.heading) * m.speed * 0.85 + Math.cos(bk) * rand(20, 60),
+            Math.sin(m.heading) * m.speed * 0.85 + Math.sin(bk) * rand(20, 60),
+            rand(3.2, 5.6), rand(0.5, 1)
+          );
+        }
+      }
+
+      // торпеда врезалась в камень: зубр ломит его корпусом (терпит
+      // hp-1 удара), остальные детонируют; взамен прилетит новая
+      var rockHit = false;
+      for (var rk = 0; rk < Asteroids.list.length; rk++) {
+        var rock = Asteroids.list[rk];
+        var rockR = rock.r + m.r;
+        if (dist2(m.x, m.y, rock.x, rock.y) < rockR * rockR) {
+          Camera.addShake(7);
+          // камень колется или обращается в дымок — тут же его эффекты и звук
+          Asteroids.smash(rock, Math.cos(m.heading), Math.sin(m.heading));
+          if (m.hp > 1) {
+            m.hp--;
+            m.speed *= 0.82; // гасим ход о породу
+            FX.explosion(m.x, m.y, "#ffd27a", 14, 260);
+            Sfx.crack();
+          } else {
+            FX.explosion(m.x, m.y, "#ffd27a", 26, 400);
+            Sfx.pop();
+            this.score(m, true); // взорвалась — уклонение
+            this.list.splice(i, 1);
+            this.replaceQueue.push(t + rand(2.5, 5));
+          }
+          rockHit = true;
+          break;
+        }
+      }
+      if (rockHit) continue;
+
+      // корона солнца сжигает торпеду; над планетой пролетаем — тень
+      // планеты не опасна. Границу пролёт проходит навылет
+      var sysHit = System.hit(m.x, m.y, m.r);
+      if (sysHit === "sun") {
+        FX.explosion(m.x, m.y, "#ffca6a", 26, 400);
+        Camera.addShake(5);
+        Sfx.pop();
+        this.score(m, true); // сгорела — уклонение
+        this.list.splice(i, 1);
+        this.replaceQueue.push(t + rand(2.5, 5));
+        continue;
+      }
+
+      // баллистическая: взрыватель сработал — подрыв в радиусе зоны
+      if (m.blast && player.alive && Game.state === "playing" &&
+          dist2(m.x, m.y, player.x, player.y) < M.blastRadius * M.blastRadius) {
+        this.detonate(m, i, t);
+        continue;
+      }
+
+      // трейл: точка каждый кадр, старые вытесняются
+      m.trail.push(m.x, m.y);
+      if (m.trail.length > M.trailMax * 2) m.trail.splice(0, 2);
+
+      // сближение -> отрыв = уклонение (одна ракета может засчитать несколько проходов)
+      if (d < M.closeRange) {
+        m.close = true;
+      } else if (m.close && !m.scored && d > M.dodgeRange) {
+        m.scored = true;
+        Game.onDodge(m);
+      }
+      if (d > M.dodgeRange * 2) { m.close = false; m.scored = false; }
+
+      // ресурс двигателя истёк — самоликвидация, взамен прилетит новая
+      m.life -= dt;
+      if (m.life <= 0) {
+        FX.explosion(m.x, m.y, CONFIG.colors.missileGlow, 26, m.speed);
+        this.score(m, true); // взорвалась — уклонение
+        this.list.splice(i, 1);
+        this.replaceQueue.push(t + rand(2.5, 5));
+        Camera.addShake(4);
+        Sfx.pop();
+      }
+    }
+
+    // охотники сталкиваются друг с другом: обе детонируют, взамен прилетят новые
+    for (var a = this.list.length - 1; a > 0; a--) {
+      for (var b = a - 1; b >= 0; b--) {
+        var A = this.list[a], B = this.list[b];
+        if (t - A.born < 0.8 || t - B.born < 0.8) continue;
+        var cr = A.r + B.r; // касание по фактическим радиусам классов
+        if (dist2(A.x, A.y, B.x, B.y) < cr * cr) {
+          var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+          FX.explosion(mx, my, "#ffd27a", 36, 470);
+          FX.explosion(mx, my, CONFIG.colors.missileGlow, 24, 380);
+          Camera.addShake(9);
+          Sfx.pop();
+          Sfx.blip(120, 0.28, "sawtooth", 0.1, -70);
+          this.score(A, true); // обе взорвались — два уклонения
+          this.score(B, true);
+          this.list.splice(a, 1);
+          this.list.splice(b, 1);
+          this.replaceQueue.push(t + rand(2.5, 5), t + rand(2.5, 5));
+          a = 0;
+          break;
+        }
+      }
+    }
+
+    // ---- пролётки: строго прямолинейный полёт ----
+    if (this.straightArrow && t >= this.straightArrow.until) this.straightArrow = null;
+    var viewR = this.viewRadius();
+    var farR = viewR + 620;
+    for (var i2 = this.straight.length - 1; i2 >= 0; i2--) {
+      var s = this.straight[i2];
+      s.x += s.dx * s.speed * dt;
+      s.y += s.dy * s.speed * dt;
+      s.trail.push(s.x, s.y);
+      if (s.trail.length > M.trailMax * 2) s.trail.splice(0, 2);
+
+      // камень на курсе — детонация, камень колется или обращается в дымок
+      var sRock = false;
+      for (var rk2 = 0; rk2 < Asteroids.list.length; rk2++) {
+        var rock2 = Asteroids.list[rk2];
+        var rockR2 = rock2.r + M.radius;
+        if (dist2(s.x, s.y, rock2.x, rock2.y) < rockR2 * rockR2) {
+          FX.explosion(s.x, s.y, "#ff9a8a", 26, 410);
+          Camera.addShake(7);
+          Asteroids.smash(rock2, s.dx, s.dy);
+          this.score(s, true); // взорвалась — уклонение
+          this.straight.splice(i2, 1);
+          sRock = true;
+          break;
+        }
+      }
+      if (sRock) continue;
+
+      // корона солнца — пролётка гибнет; над планетами пролетает;
+      // стену группы пролетают, исчезнут далеко за полем (farR/ресурс)
+      var sSys = System.hit(s.x, s.y, S.radius);
+      if (sSys === "sun") {
+        FX.explosion(s.x, s.y, "#ffca6a", 26, 410);
+        Camera.addShake(5);
+        Sfx.pop();
+        this.score(s, true); // сгорела — уклонение
+        this.straight.splice(i2, 1);
+        continue;
+      }
+
+      // столкновение с игроком — фатально, как у охотников
+      var pr = CONFIG.player.radius + M.radius;
+      if (player.alive && Game.state === "playing" && dist2(s.x, s.y, player.x, player.y) < pr * pr) {
+        this.straight.splice(i2, 1);
+        Game.hit(s);
+        continue;
+      }
+
+      // пролетела мимо: игрок остался позади по курсу торпеды
+      if (!s.scored && (player.x - s.x) * s.dx + (player.y - s.y) * s.dy < 0) {
+        this.score(s, true);
+      }
+
+      // улетела далеко в сторону или ресурс вышел — тихо исчезает
+      s.life -= dt;
+      if (s.life <= 0 || dist2(s.x, s.y, player.x, player.y) > farR * farR) {
+        this.score(s, true); // пролетела мимо — уклонение
+        this.straight.splice(i2, 1);
+      }
+    }
+  },
+
+  draw: function (ctx, t) {
+    var C = CONFIG.colors;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // маршрут пролёток: пунктир цвета тетрадной доски (как клетка поля).
+    // Рисуется ТОЛЬКО когда ракеты заспавнились — в окно предупреждения
+    // "!" курса ещё нет, игрок видит коридор пролёта заранее
+    if (this.straight.length) {
+      var routeLen = CONFIG.system.bounds * 2;
+      ctx.strokeStyle = "rgba(112,162,255,0.5)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([14, 12]);
+      ctx.lineDashOffset = -t * 55; // бегущий пунктир — видно направление
+      ctx.beginPath();
+      for (var r = 0; r < this.straight.length; r++) {
+        var s0 = this.straight[r];
+        ctx.moveTo(s0.x - s0.dx * 26, s0.y - s0.dy * 26);
+        ctx.lineTo(s0.x + s0.dx * routeLen, s0.y + s0.dy * routeLen);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+    }
+
+    // взрыватель баллистических: пульсирующий пунктир зоны подрыва —
+    // игрок заранее видит, где торпеда рванёт
+    for (var fz = 0; fz < this.list.length; fz++) {
+      var bm = this.list[fz];
+      if (!bm.blast) continue;
+      ctx.globalAlpha = 0.26 + 0.14 * Math.sin(t * 6 + bm.seed);
+      ctx.strokeStyle = "rgba(255,92,120,0.95)";
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([7, 9]);
+      ctx.lineDashOffset = -t * 40;
+      ctx.beginPath();
+      ctx.arc(bm.x, bm.y, CONFIG.missile.blastRadius, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+
+    // следы охотников — голубой лёд, толщина по классу
+    for (var i = 0; i < this.list.length; i++) {
+      drawTrail(ctx, this.list[i].trail, C.missileTrail, this.list[i].trailW || 2.6);
+    }
+    // следы пролёток — тревожный красный
+    for (var i2 = 0; i2 < this.straight.length; i2++) {
+      drawTrail(ctx, this.straight[i2].trail, C.straightTrail, 2.2);
+    }
+    ctx.globalAlpha = 1;
+
+    // корпуса: у охотников коралловый нос и голубые огни,
+    // у пролёток — алый нос и красные огни
+    ctx.globalCompositeOperation = "lighter";
+    for (var j = 0; j < this.list.length; j++) torpedoBody(ctx, this.list[j], t, false);
+    for (var j2 = 0; j2 < this.straight.length; j2++) torpedoBody(ctx, this.straight[j2], t, true);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+  },
+
+  // экранные маркеры у краёв: белый "!" над каждым охотником за
+  // кадром и красный "!" в сторону летящей группы пролёток
+  drawMarkers: function (ctx, cam, t) {
+    // сверху служебная панель-дашборд — маркеры не должны прятаться под ней
+    var pad = 36;
+    var top = 118;
+    var halfW = cam.w / 2 - pad, halfH = cam.h / 2 - top;
+    if (halfW <= 10 || halfH <= 10) return;
+
+    for (var i = 0; i < this.list.length; i++) {
+      var m = this.list[i];
+      var sx = (m.x - cam.x) * cam.zoom + cam.w / 2;
+      var sy = (m.y - cam.y) * cam.zoom + cam.h / 2;
+      if (sx > -6 && sx < cam.w + 6 && sy > -6 && sy < cam.h + 6) continue;
+      var dx = sx - cam.w / 2, dy = sy - cam.h / 2;
+      var k = Math.max(Math.abs(dx) / halfW, Math.abs(dy) / halfH);
+      if (k < 1e-4) continue;
+      this.badge(ctx, cam.w / 2 + dx / k, cam.h / 2 + dy / k, t, "235,244,255", false);
+    }
+
+    if (this.straightWarn) {
+      var w = this.straightWarn;
+      var wx = Math.cos(w.a), wy = Math.sin(w.a);
+      var kw = Math.min(
+        Math.abs(wx) > 1e-4 ? halfW / Math.abs(wx) : 1e9,
+        Math.abs(wy) > 1e-4 ? halfH / Math.abs(wy) : 1e9
+      );
+      this.badge(ctx, cam.w / 2 + wx * kw, cam.h / 2 + wy * kw, t, "255,72,84", true);
+    } else if (this.straightArrow) {
+      var aw = this.straightArrow;
+      var ux = Math.cos(aw.a), uy = Math.sin(aw.a);
+      var ku = Math.min(
+        Math.abs(ux) > 1e-4 ? halfW / Math.abs(ux) : 1e9,
+        Math.abs(uy) > 1e-4 ? halfH / Math.abs(uy) : 1e9
+      );
+      this.arrow(ctx, cam.w / 2 + ux * ku, cam.h / 2 + uy * ku, aw.dir, t, aw.until);
+    }
+  },
+
+  // плашка-предупреждение в духе современных мини-игр: тёмный
+  // круг, неоновое кольцо, мягкое свечение и пульсация; тревожная
+  // — мигает и пускает расходящиеся волны
+  badge: function (ctx, x, y, t, rgb, urgent) {
+    var pulse = 1 + 0.13 * Math.sin(t * 7);
+    var r = (urgent ? 15 : 12.5) * pulse;
+    var alpha = urgent ? 0.6 + 0.4 * Math.abs(Math.sin(t * 9)) : 0.8 + 0.2 * Math.sin(t * 5);
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.55 * alpha;
+    var glow = urgent ? SPRITES.warnGlowRed : SPRITES.warnGlowWhite;
+    ctx.drawImage(glow, -r * 2.6, -r * 2.6, r * 5.2, r * 5.2);
+    ctx.globalCompositeOperation = "source-over";
+
+    if (urgent) {
+      var ph = (t * 1.6) % 1;
+      ctx.globalAlpha = 0.55 * (1 - ph);
+      ctx.strokeStyle = "rgba(" + rgb + ",1)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (1.15 + ph * 1.7), 0, TAU);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(9,11,24,0.8)";
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = "rgba(" + rgb + ",0.95)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(" + rgb + ",1)";
+    ctx.font = "800 " + Math.round(r * 1.45) + "px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("!", 0, 1);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "start";
+    ctx.restore();
+  },
+
+  // стрелка направления вылета: неоновый шеврон у края экрана,
+  // развёрнутый по курсу группы; мигает и тает за ~1.5 с
+  arrow: function (ctx, x, y, dir, t, until) {
+    var left = until - t;
+    if (left <= 0) return;
+    var alpha = Math.min(1, left / 1.5) * (0.6 + 0.4 * Math.abs(Math.sin(t * 10)));
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(dir);
+
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.5 * alpha;
+    ctx.drawImage(SPRITES.warnGlowRed, -34, -34, 68, 68);
+    ctx.globalCompositeOperation = "source-over";
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(255,72,84,0.95)";
+    ctx.beginPath();
+    ctx.moveTo(17, 0);
+    ctx.lineTo(-9, -12);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-9, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+};
+
+// цельный след без разрывов: обычное смешивание (не аддитивное),
+// чтобы перекрытия на стыках не давали ярких бусин, и круглые
+// концы кисти, чтобы на изгибах сегменты не расходились в "куски".
+// Рисуем от хвоста к носу: сегмент монотонно ярче и толще.
+function drawTrail(ctx, tr, rgb, width) {
+  var n = tr.length / 2;
+  if (n <= 2) return;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(" + rgb + ",1)";
+  for (var s2 = 0; s2 < n - 1; s2++) {
+    var k = s2 / (n - 1);
+    ctx.globalAlpha = 0.82 * Math.pow(k, 1.35);
+    ctx.lineWidth = 0.8 + width * Math.pow(k, 1.2);
+    ctx.beginPath();
+    ctx.moveTo(tr[s2 * 2], tr[s2 * 2 + 1]);
+    ctx.lineTo(tr[s2 * 2 + 2], tr[s2 * 2 + 3]);
+    ctx.stroke();
+  }
+}
+
+// корпус торпеды, общий для обоих типов; hostile = пролётка.
+// Класс даёт масштаб и свою отделку: зубр — тёмная броня с плитами,
+// баллистическая — лиловый нос, малый — просто меньше
+function torpedoBody(ctx, m, t, hostile) {
+  var cls = m.cls || "hunter";
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  ctx.scale(m.scale || 1, m.scale || 1);
+  ctx.drawImage(hostile ? SPRITES.straightGlow : SPRITES.missileGlow, -26, -26, 52, 52);
+  ctx.rotate(m.heading);
+
+  // пузырьки выхлопа из-за кормы
+  ctx.fillStyle = "rgba(205,232,255,0.55)";
+  for (var bb = 0; bb < 3; bb++) {
+    var bx = -15 - bb * 5.5 - ((t * 34 + m.seed * 9) % 16);
+    ctx.beginPath();
+    ctx.arc(bx, Math.sin(t * 8 + m.seed + bb * 2.1) * 2.2, 1 + bb * 0.45, 0, TAU);
+    ctx.fill();
+  }
+
+  // винт: мерцающий крест за кормой
+  var pv = 3.6 + 1.6 * Math.sin(t * 44 + m.seed);
+  ctx.strokeStyle = "rgba(170,200,240,0.6)";
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(-14.2, -pv); ctx.lineTo(-14.2, pv);
+  ctx.moveTo(-14.2 - pv * 0.6, 0); ctx.lineTo(-14.2 + pv * 0.6, 0);
+  ctx.stroke();
+
+  // хвостовые стабилизаторы
+  ctx.fillStyle = "#22304e";
+  ctx.beginPath();
+  ctx.moveTo(-8.5, -2.4); ctx.lineTo(-15, -5.8); ctx.lineTo(-12.6, -1); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-8.5, 2.4); ctx.lineTo(-15, 5.8); ctx.lineTo(-12.6, 1); ctx.closePath(); ctx.fill();
+
+  // сигара корпуса: сталь со светлой палубой; зубр — тёмная сталь брони
+  var bg = ctx.createLinearGradient(0, -3.2, 0, 3.2);
+  if (cls === "zubr") {
+    bg.addColorStop(0, "#a9b8ab");
+    bg.addColorStop(0.4, "#51605a");
+    bg.addColorStop(1, "#131a17");
+  } else {
+    bg.addColorStop(0, "#8ea2c6");
+    bg.addColorStop(0.4, "#4a5b80");
+    bg.addColorStop(1, "#161f38");
+  }
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.moveTo(8.5, -3.2);
+  ctx.lineTo(-11, -3.2);
+  ctx.quadraticCurveTo(-14.6, -3.2, -14.6, 0);
+  ctx.quadraticCurveTo(-14.6, 3.2, -11, 3.2);
+  ctx.lineTo(8.5, 3.2);
+  ctx.closePath();
+  ctx.fill();
+
+  // бронеплиты зубра поперёк корпуса
+  if (cls === "zubr") {
+    ctx.fillStyle = "rgba(215,228,218,0.5)";
+    ctx.fillRect(1.6, -3.4, 2.2, 6.8);
+    ctx.fillRect(-6.6, -3.4, 2.2, 6.8);
+  }
+
+  // нос-обтекатель: коралловый у охотников, алый у пролёток,
+  // лиловый у баллистических
+  var ng = ctx.createLinearGradient(8.5, 0, 14.4, 0);
+  if (hostile) {
+    ng.addColorStop(0, "#ff8f8a");
+    ng.addColorStop(1, "#ff3b30");
+  } else if (cls === "ballistic") {
+    ng.addColorStop(0, "#c9a8ff");
+    ng.addColorStop(1, "#8a5cf6");
+  } else {
+    ng.addColorStop(0, "#ffb27a");
+    ng.addColorStop(1, "#ff6a3d");
+  }
+  ctx.fillStyle = ng;
+  ctx.beginPath();
+  ctx.moveTo(8.5, -3.2);
+  ctx.quadraticCurveTo(14.4, -2.8, 14.4, 0);
+  ctx.quadraticCurveTo(14.4, 2.8, 8.5, 3.2);
+  ctx.closePath();
+  ctx.fill();
+
+  // палубный блик и светящиеся секции
+  ctx.fillStyle = "rgba(232,244,255,0.5)";
+  ctx.fillRect(-11, -2.5, 18.5, 0.9);
+  ctx.fillStyle = hostile ? "rgba(255,120,120,0.9)" : "rgba(140,225,255,0.85)";
+  ctx.fillRect(2.2, -1.1, 1.7, 2.2);
+  ctx.fillRect(-3.2, -1.1, 1.7, 2.2);
+  ctx.fillStyle = hostile ? "rgba(255,200,190,0.95)" : CONFIG.colors.missileCore;
+  ctx.fillRect(-7.6, -1.1, 1.4, 2.2);
+
+  ctx.restore();
+}
+
+// ============================================================
+// РАЗДЕЛ J-7 · ЭФФЕКТЫ: ЧАСТИЦЫ, ВСПЫШКИ, ВСПЛЫВАЮЩИЙ ТЕКСТ
+// ============================================================
+var FX = {
+  parts: [],
+  texts: [],
+  smoke: [],
+  rings: [],
+
+  // ударная волна подрыва: два расходящихся кольца (внешнее — розовое,
+  // внутреннее — горячее светлое); вызывается вместе с FX.explosion
+  blast: function (x, y, r) {
+    this.rings.push({ x: x, y: y, r0: r * 0.3, r1: r * 1.25, life: 0.55, maxLife: 0.55, lw: 3.5, color: "255,150,220" });
+    this.rings.push({ x: x, y: y, r0: r * 0.15, r1: r, life: 0.4, maxLife: 0.4, lw: 2, color: "255,230,180" });
+  },
+
+  explosion: function (x, y, color, n, speed) {
+    for (var i = 0; i < n; i++) {
+      var a = rand(0, TAU);
+      var s = rand(0.15, 1) * (speed || 300) * 0.9;
+      this.parts.push({
+        x: x, y: y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: rand(0.4, 1.1), maxLife: 1.1,
+        size: rand(1.6, 4.2),
+        color: color
+      });
+    }
+    this.parts.push({ x: x, y: y, glow: true, life: 0.5, maxLife: 0.5, size: 110, color: color });
+  },
+
+  text: function (x, y, str, color) {
+    this.texts.push({ x: x, y: y, str: str, color: color || "#9feaff", life: 1.25, maxLife: 1.25 });
+  },
+
+  dust: function (x, y, n, spread) {
+    for (var i = 0; i < n; i++) {
+      var a = rand(0, TAU);
+      var s = rand(18, spread || 80);
+      this.parts.push({
+        x: x, y: y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: rand(0.3, 0.65), maxLife: 0.65,
+        size: rand(1.2, 2.6),
+        color: "#a8b1c9"
+      });
+    }
+  },
+
+  // клуб копоти: медленно расползается и тает
+  puff: function (x, y, vx, vy, size, life) {
+    this.smoke.push({ x: x, y: y, vx: vx, vy: vy, size: size, life: life, maxLife: life });
+  },
+
+  clear: function () {
+    this.parts.length = 0;
+    this.texts.length = 0;
+    this.smoke.length = 0;
+    this.rings.length = 0;
+  },
+
+  update: function (dt) {
+    var drag = expDecay(0.2, dt);
+    for (var r = this.rings.length - 1; r >= 0; r--) {
+      var g = this.rings[r];
+      g.life -= dt;
+      if (g.life <= 0) this.rings.splice(r, 1);
+    }
+    for (var s = this.smoke.length - 1; s >= 0; s--) {
+      var w = this.smoke[s];
+      w.life -= dt;
+      if (w.life <= 0) { this.smoke.splice(s, 1); continue; }
+      w.x += w.vx * dt;
+      w.y += w.vy * dt;
+      w.vx *= drag;
+      w.vy *= drag;
+      w.size += 11 * dt;
+    }
+    for (var i = this.parts.length - 1; i >= 0; i--) {
+      var p = this.parts[i];
+      p.life -= dt;
+      if (p.life <= 0) { this.parts.splice(i, 1); continue; }
+      if (!p.glow) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= drag;
+        p.vy *= drag;
+      }
+    }
+    for (var j = this.texts.length - 1; j >= 0; j--) {
+      var q = this.texts[j];
+      q.life -= dt;
+      q.y -= 26 * dt;
+      if (q.life <= 0) this.texts.splice(j, 1);
+    }
+  },
+
+  draw: function (ctx) {
+    // копоть: мягкие серые клубы, обычное смешивание — свет не излучают
+    for (var s = 0; s < this.smoke.length; s++) {
+      var w = this.smoke[s];
+      var k = w.life / w.maxLife;
+      ctx.globalAlpha = 0.4 * Math.pow(k, 0.8) * Math.min(1, (1 - k) * 5);
+      ctx.drawImage(SPRITES.smokePuff, w.x - w.size, w.y - w.size, w.size * 2, w.size * 2);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.globalCompositeOperation = "lighter";
+
+    // кольца ударной волны: быстрый разгон в начале, мягкое таяние в конце
+    for (var q = 0; q < this.rings.length; q++) {
+      var g = this.rings[q];
+      var k = 1 - g.life / g.maxLife;
+      ctx.globalAlpha = (1 - k) * 0.85;
+      ctx.strokeStyle = "rgba(" + g.color + ",1)";
+      ctx.lineWidth = g.lw * (1 - k * 0.6);
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.r0 + (g.r1 - g.r0) * (1 - Math.pow(1 - k, 2.2)), 0, TAU);
+      ctx.stroke();
+    }
+
+    for (var i = 0; i < this.parts.length; i++) {
+      var p = this.parts[i];
+      var k = p.life / p.maxLife;
+      if (p.glow) {
+        ctx.globalAlpha = k * 0.7;
+        ctx.drawImage(SPRITES.hitGlow, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      } else {
+        ctx.globalAlpha = k;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
+    }
+    ctx.globalCompositeOperation = "source-over";
+
+    // текст живёт в мире, но размер — экранный: компенсируем зум,
+    // чтобы на телефоне очки не превращались в точку
+    var iz = 1 / (Camera.zoom || 1);
+    ctx.font = "700 15px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    for (var j = 0; j < this.texts.length; j++) {
+      var q = this.texts[j];
+      ctx.globalAlpha = Math.min(1, (q.life / q.maxLife) * 1.6);
+      ctx.fillStyle = q.color;
+      ctx.save();
+      ctx.translate(q.x, q.y);
+      ctx.scale(iz, iz);
+      ctx.fillText(q.str, 0, 0);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "start";
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-8 · ЗВУК (WebAudio, всё синтезируется на лету)
+// Аудиоконтекст создаётся по первому действию игрока; любая
+// ошибка глушится — игра остаётся играбельной без звука.
+// ============================================================
+var Sfx = {
+  ctx: null,
+  muted: false, // управляется служебной панелью; состояние в Store
+
+  setMuted: function (v) {
+    this.muted = !!v;
+    Store.set("orbit-dodger-muted", this.muted ? "1" : "0");
+  },
+
+  ensure: function () {
+    if (this.ctx) return true;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      this.ctx = new AC();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  resume: function () {
+    if (this.ctx && this.ctx.state === "suspended") {
+      try { this.ctx.resume(); } catch (e) { /* noop */ }
+    }
+  },
+
+  blip: function (freq, dur, type, vol, slide, delay) {
+    if (this.muted) return;
+    if (!this.ensure()) return;
+    try {
+      var c = this.ctx;
+      var t = c.currentTime + (delay || 0);
+      var o = c.createOscillator();
+      var g = c.createGain();
+      o.type = type || "sine";
+      o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+      g.gain.setValueAtTime(vol || 0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g);
+      g.connect(c.destination);
+      o.start(t);
+      o.stop(t + dur + 0.03);
+    } catch (e) { /* noop */ }
+  },
+
+  noise: function (dur, vol) {
+    if (this.muted) return;
+    if (!this.ensure()) return;
+    try {
+      var c = this.ctx;
+      var t = c.currentTime;
+      var n = Math.floor(c.sampleRate * dur);
+      var buf = c.createBuffer(1, n, c.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var src = c.createBufferSource();
+      src.buffer = buf;
+      var f = c.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 900;
+      var g = c.createGain();
+      g.gain.value = vol || 0.3;
+      src.connect(f);
+      f.connect(g);
+      g.connect(c.destination);
+      src.start(t);
+    } catch (e) { /* noop */ }
+  },
+
+  launch: function () { this.blip(150, 0.5, "sawtooth", 0.05, 90); },
+  alarm: function () {
+    // тревога о пролётках: два коротких + протяжный сигнал
+    this.blip(880, 0.09, "square", 0.05, 0);
+    this.blip(880, 0.09, "square", 0.05, 0, 0.14);
+    this.blip(1180, 0.18, "square", 0.06, 60, 0.28);
+  },
+  dodge: function () {
+    this.blip(620, 0.08, "sine", 0.1, 140);
+    this.blip(830, 0.1, "sine", 0.1, 180, 0.07);
+  },
+
+  // вой двигателя охотника: пилообразный гул с вибрато — слышно,
+  // когда охотник подобрался близко (Game гонит не чаще раза в 1.4 с)
+  hunterWhine: function () {
+    if (this.muted) return;
+    if (!this.ensure()) return;
+    try {
+      var c = this.ctx;
+      var t = c.currentTime;
+      var o = c.createOscillator();
+      var lfo = c.createOscillator();
+      var lg = c.createGain();
+      var g = c.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(96, t);
+      o.frequency.linearRampToValueAtTime(150, t + 0.5);
+      lfo.frequency.value = 9;
+      lg.gain.value = 12;
+      lfo.connect(lg);
+      lg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.11, t + 0.1);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      o.connect(g);
+      g.connect(c.destination);
+      o.start(t);
+      lfo.start(t);
+      o.stop(t + 0.6);
+      lfo.stop(t + 0.6);
+    } catch (e) { /* noop */ }
+  },
+
+  // подрыв баллистической: низкий бас поверх глухого шума
+  blast: function () {
+    this.noise(0.55, 0.4);
+    this.blip(64, 0.5, "sawtooth", 0.22, -30);
+  },
+  pop: function () { this.noise(0.18, 0.1); },
+  crack: function () {
+    // раскол камня: глухой шорох + низкий щелчок
+    this.noise(0.22, 0.18);
+    this.blip(150, 0.2, "triangle", 0.1, -80);
+  },
+  explode: function () {
+    this.noise(0.5, 0.35);
+    this.blip(90, 0.4, "sawtooth", 0.18, -50);
+  },
+  start: function () { this.blip(440, 0.12, "triangle", 0.08, 120); }
+};
+
+// ============================================================
+// РАЗДЕЛ J-6b · АСТЕРОИДЫ (casual-стиль)
+// Каждый камень уникален и генерируется процедурно: форма —
+// сумма синусов, морилки, кратеры, минеральные блёстки и
+// обводка рисуются один раз в offscreen-канву. Камни дрейфуют
+// и вращаются, от жёсткой границы системы отражаются, в короне
+// солнца сгорают, о планеты разбиваются на 2-4 осколка — ровно
+// как от торпеды. Камни отталкиваются друг от друга (пробки
+// не собираются).
+// Торпеды разбиваются о камни: крупный камень колется на 2-4
+// осколка меньшего суммарного объёма, мелкий обращается в
+// облако пыли и тает. Корабль при касании гибнет.
+// ============================================================
+var Asteroids = {
+  list: [],
+
+  reset: function (px, py) {
+    this.list.length = 0;
+    var A = CONFIG.asteroid;
+    for (var i = 0; i < A.count; i++) {
+      // стартовые камни — вокруг корабля, но не на солнце и не на планетах
+      var a = rand(0, TAU), d = rand(A.ringMax * 0.25, A.ringMax), tries = 0;
+      var pos = { x: px + Math.cos(a) * d, y: py + Math.sin(a) * d };
+      System.clampPoint(pos, 26);
+      while (System.hit(pos.x, pos.y, 26) && tries < 4) {
+        a += 1.9; d = rand(A.ringMax * 0.25, A.ringMax);
+        pos.x = px + Math.cos(a) * d; pos.y = py + Math.sin(a) * d;
+        System.clampPoint(pos, 26);
+        tries++;
+      }
+      this.list.push(this.make(pos.x, pos.y));
+    }
+  },
+
+  // forceR — готовый геометрический радиус (для осколков); без него —
+  // случайный камень штатного размера. r = R * 0.88 (контур чуть выступает)
+  make: function (x, y, forceR, tint) {
+    var A = CONFIG.asteroid;
+    var R = forceR || rand(A.radiusMin, A.radiusMax);
+    var ph1 = rand(0, TAU), ph2 = rand(0, TAU), ph3 = rand(0, TAU);
+    var n = 11 + Math.floor(rand(0, 3));
+    var verts = [];
+    for (var i = 0; i < n; i++) {
+      var th = (i / n) * TAU;
+      var r = R * (0.84 + 0.12 * Math.sin(3 * th + ph1) + 0.08 * Math.sin(5 * th + ph2) + 0.05 * Math.sin(7 * th + ph3));
+      verts.push([Math.cos(th) * r, Math.sin(th) * r]);
+    }
+    var sp = rand(A.driftMin, A.driftMax), dir = rand(0, TAU);
+    // тон породы закреплён за камнем: осколки наследуют его,
+    // обломки одного взрыва всегда одного цвета
+    var TINTS = [[152, 158, 184], [172, 150, 128], [144, 134, 162], [128, 150, 150]];
+    var tn = tint || TINTS[Math.floor(rand(0, TINTS.length))];
+    return {
+      x: x, y: y,
+      vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp,
+      rot: rand(0, TAU),
+      spin: rand(-1, 1) * A.spinMax,
+      r: R * 0.88,
+      tint: tn,
+      sprite: this.build(verts, R, tn)
+    };
+  },
+
+  build: function (verts, R, tint) {
+    var pad = 6;
+    var S = Math.ceil(R * 2 + pad * 2);
+    var c = document.createElement("canvas");
+    c.width = c.height = S;
+    var x = c.getContext("2d");
+    var cx = S / 2, cy = S / 2;
+
+    function path() {
+      x.beginPath();
+      x.moveTo(verts[0][0], verts[0][1]);
+      for (var i = 1; i < verts.length; i++) x.lineTo(verts[i][0], verts[i][1]);
+      x.closePath();
+    }
+
+    x.save();
+    x.translate(cx, cy);
+    path();
+    var g = x.createRadialGradient(-R * 0.45, -R * 0.5, R * 0.1, 0, 0, R * 1.2);
+    g.addColorStop(0, "rgb(" + (tint[0] + 48) + "," + (tint[1] + 46) + "," + (tint[2] + 42) + ")");
+    g.addColorStop(0.55, "rgb(" + tint[0] + "," + tint[1] + "," + tint[2] + ")");
+    g.addColorStop(1, "rgb(" + Math.round(tint[0] * 0.4) + "," + Math.round(tint[1] * 0.4) + "," + Math.round(tint[2] * 0.48) + ")");
+    x.fillStyle = g;
+    x.fill();
+    x.clip();
+
+    // пятна-морилки
+    for (var st = 0; st < 4; st++) {
+      var sx = rand(-R * 0.6, R * 0.6), sy = rand(-R * 0.6, R * 0.6), sr = R * rand(0.2, 0.45);
+      var sg = x.createRadialGradient(sx, sy, 0, sx, sy, sr);
+      sg.addColorStop(0, Math.random() < 0.5 ? "rgba(16,18,38,0.26)" : "rgba(255,255,255,0.13)");
+      sg.addColorStop(1, "rgba(0,0,0,0)");
+      x.fillStyle = sg;
+      x.beginPath(); x.arc(sx, sy, sr, 0, TAU); x.fill();
+    }
+
+    // кратеры: дно и кромка — в оттенке породы самого камня
+    var cDark = Math.round(tint[0] * 0.38) + "," + Math.round(tint[1] * 0.4) + "," + Math.round(tint[2] * 0.5);
+    var cDeep = Math.round(tint[0] * 0.24) + "," + Math.round(tint[1] * 0.26) + "," + Math.round(tint[2] * 0.34);
+    var cLite = Math.min(255, tint[0] + 64) + "," + Math.min(255, tint[1] + 62) + "," + Math.min(255, tint[2] + 54);
+    var craters = 3 + Math.floor(rand(0, 3));
+    for (var cr = 0; cr < craters; cr++) {
+      var rx = rand(-R * 0.55, R * 0.55), ry = rand(-R * 0.55, R * 0.55), rr = R * rand(0.12, 0.28);
+      x.fillStyle = "rgba(" + cDark + ",0.6)";
+      x.beginPath(); x.arc(rx, ry, rr, 0, TAU); x.fill();
+      x.fillStyle = "rgba(" + cDeep + ",0.55)";
+      x.beginPath(); x.arc(rx + rr * 0.28, ry + rr * 0.28, rr * 0.55, 0, TAU); x.fill();
+      x.strokeStyle = "rgba(" + cLite + ",0.45)";
+      x.lineWidth = Math.max(1, rr * 0.2);
+      x.beginPath(); x.arc(rx, ry, rr * 0.86, Math.PI * 0.75, Math.PI * 1.55); x.stroke();
+    }
+
+    // блёстки минералов
+    x.fillStyle = "rgba(210,232,255,0.5)";
+    for (var m2 = 0; m2 < 6; m2++) {
+      x.beginPath();
+      x.arc(rand(-R * 0.6, R * 0.6), rand(-R * 0.6, R * 0.6), rand(0.8, 2), 0, TAU);
+      x.fill();
+    }
+
+    // сдвинутые обводки: тень снизу-справа, свет сверху-слева (casual-объём)
+    x.lineWidth = 3;
+    x.translate(2, 2); path();
+    x.strokeStyle = "rgba(8,10,24,0.55)"; x.stroke();
+    x.translate(-4, -4); path();
+    x.strokeStyle = "rgba(205,232,255,0.4)"; x.stroke();
+    x.restore();
+
+    // внешний контур
+    x.save();
+    x.translate(cx, cy);
+    path();
+    x.strokeStyle = "rgba(14,16,32,0.6)";
+    x.lineWidth = 1.5;
+    x.stroke();
+    x.restore();
+
+    return c;
+  },
+
+  // торпеда разбилась о камень: крупный колется на 2-4 осколка,
+  // суммарный объём которых меньше исходного; мелкий превращается
+  // в облако пыли (FX.smoke) и тает. ix/iy — направление удара.
+  smash: function (rock, ix, iy) {
+    var A = CONFIG.asteroid;
+    var idx = this.list.indexOf(rock);
+    if (idx !== -1) this.list.splice(idx, 1);
+
+    if (rock.r >= A.splitMin && this.list.length + 4 <= A.hardMax) {
+      var n = 2 + Math.floor(rand(0, 3)); // 2-4 осколка
+      // объёмы считаем через кубы радиусов: в сумме childVolume от камня
+      var V = A.childVolume / n;
+      var cubes = [], sum = 0, i;
+      for (i = 0; i < n; i++) {
+        var w = rand(0.75, 1.3);
+        cubes.push(w * w * w);
+        sum += cubes[i];
+      }
+      var burst = rand(46, 84); // скорость разлёта осколков
+      var base = rand(0, TAU);
+      var kids = [];
+      for (i = 0; i < n; i++) {
+        var cr = Math.max(A.childMin, rock.r * Math.pow(V * cubes[i] / sum, 1 / 3));
+        var an = base + (i / n) * TAU + rand(-0.4, 0.4);
+        var k = this.make(
+          rock.x + Math.cos(an) * rock.r * 0.45,
+          rock.y + Math.sin(an) * rock.r * 0.45,
+          cr / 0.88, // make принимает геометрический радиус: r = R * 0.88
+          rock.tint  // осколки — цвета родительского камня
+        );
+        k.vx = rock.vx * 0.8 + Math.cos(an) * burst + ix * 22;
+        k.vy = rock.vy * 0.8 + Math.sin(an) * burst + iy * 22;
+        k.spin = rand(-1, 1) * A.spinMax * 1.7; // осколки крутятся резвее
+        kids.push(k);
+      }
+      for (i = 0; i < kids.length; i++) this.list.push(kids[i]);
+      FX.explosion(rock.x, rock.y, "#cbb9a4", 16, 240);
+      FX.dust(rock.x, rock.y, 10, 150);
+      Sfx.crack();
+    } else {
+      // мелкий камень: в дымок пыли, который расползается и исчезает
+      for (var p = 0; p < 6; p++) {
+        FX.puff(
+          rock.x + rand(-0.5, 0.5) * rock.r,
+          rock.y + rand(-0.5, 0.5) * rock.r,
+          rock.vx * 0.4 + rand(-26, 26),
+          rock.vy * 0.4 + rand(-26, 26),
+          rock.r * rand(0.35, 0.6),
+          rand(0.9, 1.5)
+        );
+      }
+      FX.dust(rock.x, rock.y, 12, 170);
+      Sfx.pop();
+    }
+
+    // выбитый камень восполняется свежим — поле не пустеет
+    this.replenish();
+  },
+
+  // свежий камень появляется вокруг игрока, но строго внутри поля
+  // и не на солнце/планете (иначе мгновенно сгорит)
+  replenish: function () {
+    var A = CONFIG.asteroid;
+    if (this.list.length >= A.count) return;
+    var a = rand(0, TAU), nd = rand(A.ringMin, A.ringMax), tries = 0;
+    var nb = this.make(Game.playerX() + Math.cos(a) * nd, Game.playerY() + Math.sin(a) * nd);
+    System.clampPoint(nb, nb.r);
+    while (System.hit(nb.x, nb.y, nb.r) && tries < 3) {
+      a += 2.3; nd = rand(A.ringMin, A.ringMax);
+      nb = this.make(Game.playerX() + Math.cos(a) * nd, Game.playerY() + Math.sin(a) * nd);
+      System.clampPoint(nb, nb.r);
+      tries++;
+    }
+    this.list.push(nb);
+  },
+
+  update: function (dt, player) {
+    var A = CONFIG.asteroid;
+    var pr = CONFIG.player.radius;
+    var vmax = A.driftMax * 2.4;
+    var n = this.list.length;
+
+    // камни отталкиваются друг от друга: столкнувшиеся расходятся,
+    // лёгкие отлетают дальше тяжёлых (масса — куб радиуса)
+    for (var a = 0; a < n; a++) {
+      var ra = this.list[a];
+      for (var b = a + 1; b < n; b++) {
+        var rb = this.list[b];
+        var md = ra.r + rb.r;
+        var dx2 = rb.x - ra.x, dy2 = rb.y - ra.y;
+        var dd = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        if (dd >= md || dd < 0.01) continue;
+        var nx = dx2 / dd, ny = dy2 / dd;
+        var ma = ra.r * ra.r * ra.r, mb = rb.r * rb.r * rb.r, mt = ma + mb;
+        var over = md - dd;
+        // раздвигаем позиции пропорционально обратным массам
+        ra.x -= nx * over * (mb / mt); ra.y -= ny * over * (mb / mt);
+        rb.x += nx * over * (ma / mt); rb.y += ny * over * (ma / mt);
+        // мягкий импульс разлёта: глубже перекрытие — сильнее толчок
+        var f = A.repel * (over / md) * dt;
+        ra.vx -= nx * f * (mb / mt); ra.vy -= ny * f * (mb / mt);
+        rb.vx += nx * f * (ma / mt); rb.vy += ny * f * (ma / mt);
+        var sa = Math.hypot(ra.vx, ra.vy);
+        if (sa > vmax) { ra.vx = ra.vx / sa * vmax; ra.vy = ra.vy / sa * vmax; }
+        var sb = Math.hypot(rb.vx, rb.vy);
+        if (sb > vmax) { rb.vx = rb.vx / sb * vmax; rb.vy = rb.vy / sb * vmax; }
+      }
+    }
+
+    for (var i = 0; i < this.list.length; i++) {
+      var k = this.list[i];
+      k.x += k.vx * dt;
+      k.y += k.vy * dt;
+      k.rot += k.spin * dt;
+
+      var dx = player.x - k.x, dy = player.y - k.y;
+      var d = Math.hypot(dx, dy);
+
+      // жёсткая граница системы: камни отражаются от «тетрадных» стен
+      System.reflect(k, k.r);
+
+      // солнце сжигает камни, о планеты они разбиваются
+      var sys = System.hit(k.x, k.y, k.r);
+      if (sys === "sun") {
+        for (var s2 = 0; s2 < 4; s2++) {
+          FX.puff(
+            k.x + rand(-8, 8), k.y + rand(-8, 8),
+            rand(-46, 46), rand(-46, 46),
+            rand(4, 8), rand(0.5, 0.9)
+          );
+        }
+        FX.dust(k.x, k.y, 8, 130);
+        Sfx.pop();
+        this.list.splice(i, 1);
+        i--;
+        this.replenish();
+        continue;
+      }
+      if (sys) {
+        // о планету камень разбивается, как от торпеды: взрыв и
+        // раскол на 2-4 осколка (мелкий — в облако пыли). Удар
+        // приходит со стороны планеты, осколки летят от неё
+        var px2 = k.x - sys.x, py2 = k.y - sys.y;
+        var pd2 = Math.hypot(px2, py2) || 1;
+        var nx2 = px2 / pd2, ny2 = py2 / pd2;
+        // ставим камень в точку касания поверхности — осколки
+        // не рождаются глубоко внутри планеты
+        var surf = sys.size * 0.92 + k.r;
+        k.x = sys.x + nx2 * surf;
+        k.y = sys.y + ny2 * surf;
+        Camera.addShake(6);
+        this.smash(k, nx2, ny2);
+        i--; // smash убрал камень из списка — не пропускаем соседа
+        continue;
+      }
+
+      // столкновение с кораблём: фатально, камень получает толчок
+      var rr = k.r + pr;
+      if (player.alive && Game.state === "playing" && d < rr && d > 0.01) {
+        k.vx += player.vx * 0.35 + (dx / d) * 30;
+        k.vy += player.vy * 0.35 + (dy / d) * 30;
+        var ks = Math.hypot(k.vx, k.vy), kmax = A.driftMax * 2.4;
+        if (ks > kmax) { k.vx = k.vx / ks * kmax; k.vy = k.vy / ks * kmax; }
+        Game.hitAsteroid();
+        continue;
+      }
+    }
+  },
+
+  draw: function (ctx) {
+    for (var i = 0; i < this.list.length; i++) {
+      var k = this.list[i];
+      ctx.save();
+      ctx.translate(k.x, k.y);
+      ctx.rotate(k.rot);
+      ctx.drawImage(k.sprite, -k.sprite.width / 2, -k.sprite.height / 2);
+      ctx.restore();
+    }
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-6c · СЛУЖЕБНАЯ ПАНЕЛЬ (ДАШБОРД)
+// Левая секция: профиль + «поделиться» (ссылка-заглушка krepost.ru).
+// Центр: игровые счётчики. Правая: звук, полный экран, перезагрузка.
+// Панель универсальна — переиспользуется во всех веб-играх платформы.
+// ============================================================
+var Panel = {
+  el: {},
+  threatsCache: -1,
+  perfT: 0,       // счётчик кадров для редкого обновления FPS/частиц
+  fpsCache: -1,
+  partsCache: -1,
+  sessionId: null,
+  toastT: null,
+
+  init: function () {
+    var ids = ["tb-profile", "tb-share", "tb-sound", "tb-full", "tb-reload",
+               "hud-threats", "hud-fps", "hud-parts", "modal-profile", "modal-share",
+               "pf-coins", "pf-games", "pf-best", "pf-dodges", "pf-time", "pf-rating",
+               "pf-mode", "pf-note", "pf-save", "pf-dot", "share-link", "btn-copy", "toast"];
+    for (var i = 0; i < ids.length; i++) this.el[ids[i]] = document.getElementById(ids[i]);
+
+    var self = this;
+    this.el["tb-profile"].addEventListener("click", function () { self.openProfile(); this.blur(); });
+    this.el["tb-share"].addEventListener("click", function () { self.openShare(); this.blur(); });
+    this.el["tb-sound"].addEventListener("click", function () { self.toggleSound(); this.blur(); });
+    this.el["tb-full"].addEventListener("click", function () { self.toggleFullscreen(); this.blur(); });
+    this.el["tb-reload"].addEventListener("click", function () { window.location.reload(); });
+    this.el["btn-copy"].addEventListener("click", function () { self.copyShare(); });
+
+    // клик по подложке или крестику закрывает окно
+    var modals = [this.el["modal-profile"], this.el["modal-share"]];
+    for (var m = 0; m < modals.length; m++) {
+      modals[m].addEventListener("click", function (e) {
+        var t = e.target;
+        if (t && t.getAttribute && t.getAttribute("data-close")) self.closeModals();
+      });
+    }
+
+    // горячие клавиши: M — звук, F — полный экран, Esc — закрыть окно
+    window.addEventListener("keydown", function (e) {
+      if (e.repeat) return;
+      if (e.code === "KeyM") self.toggleSound();
+      else if (e.code === "KeyF") { e.preventDefault(); self.toggleFullscreen(); }
+      else if (e.code === "Escape") self.closeModals();
+    });
+
+    this.syncSound();
+    this.makeShareLink();
+  },
+
+  // каждый кадр: количество активных ракет («соперники»);
+  // FPS и частицы обновляются раз в 15 кадров, чтобы не дёргать DOM
+  tick: function () {
+    var n = Missiles.list.length + Missiles.straight.length + (Missiles.straightWarn ? 1 : 0);
+    if (n !== this.threatsCache && this.el["hud-threats"]) {
+      this.threatsCache = n;
+      this.el["hud-threats"].textContent = String(n);
+    }
+    this.perfT++;
+    if (this.perfT < 15) return;
+    this.perfT = 0;
+    if (this.el["hud-fps"] && Game.fps !== this.fpsCache) {
+      this.fpsCache = Game.fps;
+      this.el["hud-fps"].textContent = String(Game.fps);
+    }
+    if (this.el["hud-parts"]) {
+      // частицы: взрывы/пыль FX + дымок + след двигателя корабля
+      var p = FX.parts.length + FX.smoke.length + Player.engine.length;
+      if (p !== this.partsCache) {
+        this.partsCache = p;
+        this.el["hud-parts"].textContent = String(p);
+      }
+    }
+  },
+
+  // ---- профиль ----
+  openProfile: function () {
+    this.renderProfile();
+    this.openModal("modal-profile");
+  },
+
+  renderProfile: function () {
+    this.el["pf-coins"].textContent = this.fmtNum(this.readCoins());
+    var st = this.readStats();
+    this.el["pf-games"].textContent = String(st.games);
+    this.el["pf-best"].textContent = String(Game.best);
+    this.el["pf-dodges"].textContent = this.fmtNum(st.dodges);
+    this.el["pf-time"].textContent = this.fmtDur(st.time);
+
+    // рейтинг: заглушка, к запуску платформы заменится данными из общей БД
+    var rows = [
+      { name: "StarRunner_77", score: 214 },
+      { name: "Космо-Кот", score: 187 },
+      { name: "Vega-9", score: 142 },
+      { name: "Пилот-01 (ты)", score: Game.best, you: true },
+      { name: "NeonPath", score: 96 },
+      { name: "Метеорит", score: 58 }
+    ];
+    rows.sort(function (a, b) { return b.score - a.score; });
+    var html = "";
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      html += '<li class="' + (r.you ? "you" : "") + '">'
+        + '<span class="pf-rank' + (i < 3 ? " top" : "") + '">' + (i + 1) + '</span>'
+        + '<span class="pf-name-cell">' + r.name + '</span>'
+        + '<span class="pf-score">' + r.score + '</span></li>';
+    }
+    this.el["pf-rating"].innerHTML = html;
+
+    // статус хранилища: временная / локальная / облачная база
+    var mode = Store.mode();
+    var dot = this.el["pf-dot"];
+    if (mode === "cloud") {
+      this.el["pf-mode"].textContent = "Облачная база";
+      this.el["pf-note"].textContent = "Данные игрока доступны на любом устройстве пользователя.";
+      dot.className = "pf-dot";
+    } else if (mode === "local") {
+      this.el["pf-mode"].textContent = "Локальная база";
+      this.el["pf-note"].textContent = "Данные игрока сохраняются локально на этом устройстве.";
+      dot.className = "pf-dot";
+    } else {
+      this.el["pf-mode"].textContent = "Временная база (сессия)";
+      this.el["pf-note"].textContent = "localStorage недоступен — данные сохраняются только в пределах игровой сессии.";
+      dot.className = "pf-dot warn";
+    }
+    this.el["pf-save"].textContent = Store.lastSaveText();
+  },
+
+  readCoins: function () {
+    return parseInt(Store.get("orbit-dodger-coins") || "0", 10) || 0;
+  },
+
+  readStats: function () {
+    var st = { games: 0, dodges: 0, time: 0 };
+    try { st = JSON.parse(Store.get("orbit-dodger-stats")) || st; } catch (e) { /* нет данных */ }
+    st.games = st.games || 0;
+    st.dodges = st.dodges || 0;
+    st.time = st.time || 0;
+    return st;
+  },
+
+  fmtNum: function (n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  },
+
+  fmtDur: function (t) {
+    var m = Math.floor(t / 60);
+    if (m >= 60) {
+      var h = Math.floor(m / 60);
+      return h + " ч " + (m % 60) + " мин";
+    }
+    return m + " мин";
+  },
+
+  // ---- поделиться ----
+  makeShareLink: function () {
+    if (!this.sessionId) this.sessionId = Math.random().toString(36).slice(2, 8).toUpperCase();
+    this.el["share-link"].value = "https://krepost.ru/games/orbit-dodger?s=" + this.sessionId;
+  },
+
+  openShare: function () {
+    this.makeShareLink();
+    this.openModal("modal-share");
+  },
+
+  copyShare: function () {
+    var input = this.el["share-link"];
+    var self = this;
+    var done = function (ok) {
+      self.toast(ok ? "Ссылка скопирована" : "Не удалось скопировать — выделите ссылку вручную");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(input.value).then(
+        function () { done(true); },
+        function () { done(self.fallbackCopy(input)); }
+      );
+    } else {
+      done(this.fallbackCopy(input));
+    }
+  },
+
+  fallbackCopy: function (input) {
+    try {
+      input.focus();
+      input.select();
+      var ok = document.execCommand("copy");
+      input.blur();
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  // ---- окна ----
+  openModal: function (id) {
+    this.closeModals();
+    this.el[id].classList.remove("hidden");
+  },
+
+  closeModals: function () {
+    this.el["modal-profile"].classList.add("hidden");
+    this.el["modal-share"].classList.add("hidden");
+  },
+
+  // ---- звук / экран / перезагрузка ----
+  toggleSound: function () {
+    Sfx.setMuted(!Sfx.muted);
+    this.syncSound();
+    if (!Sfx.muted) Sfx.start(); // подтверждение: короткий сигнал
+    this.toast(Sfx.muted ? "Звук выключен" : "Звук включён");
+  },
+
+  syncSound: function () {
+    if (this.el["tb-sound"]) this.el["tb-sound"].classList.toggle("is-off", Sfx.muted);
+  },
+
+  toggleFullscreen: function () {
+    var self = this;
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        var ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (ex) ex.call(document);
+      } else {
+        var el = document.documentElement;
+        var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!fn) { this.toast("Полный экран не поддерживается"); return; }
+        var p = fn.call(el);
+        if (p && p.catch) p.catch(function () { self.toast("Полный экран недоступен в песочнице"); });
+      }
+    } catch (e) {
+      this.toast("Полный экран недоступен в песочнице");
+    }
+  },
+
+  toast: function (msg) {
+    var t = this.el["toast"];
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    if (this.toastT) clearTimeout(this.toastT);
+    this.toastT = setTimeout(function () { t.classList.remove("show"); }, 1900);
+  }
+};
+// ============================================================
+// РАЗДЕЛ J-9 · РЕНДЕР: ФОН, МИР, ДЖОЙСТИК, ВИНЬЕТКА
+// ============================================================
+var Render = {
+  canvas: null,
+  ctx: null,
+  dpr: 1,
+  bgGrad: null,
+  vignette: null,
+
+  init: function () {
+    this.canvas = document.getElementById("game");
+    this.ctx = this.canvas.getContext("2d");
+    var self = this;
+    var resize = function () {
+      self.dpr = Math.min(2, window.devicePixelRatio || 1);
+      Camera.setViewport(window.innerWidth, window.innerHeight);
+      self.canvas.width = Math.round(Camera.w * self.dpr);
+      self.canvas.height = Math.round(Camera.h * self.dpr);
+      self.ctx.setTransform(self.dpr, 0, 0, self.dpr, 0, 0);
+
+      self.bgGrad = self.ctx.createLinearGradient(0, 0, 0, Camera.h);
+      self.bgGrad.addColorStop(0, "#0a0e22");
+      self.bgGrad.addColorStop(1, "#04050c");
+
+      self.vignette = self.ctx.createRadialGradient(
+        Camera.w / 2, Camera.h / 2, Math.min(Camera.w, Camera.h) * 0.42,
+        Camera.w / 2, Camera.h / 2, Math.hypot(Camera.w, Camera.h) * 0.62
+      );
+      self.vignette.addColorStop(0, "rgba(0,0,0,0)");
+      self.vignette.addColorStop(1, "rgba(2,3,10,0.55)");
+    };
+    window.addEventListener("resize", resize);
+    resize();
+  },
+
+  frame: function (t) {
+    var ctx = this.ctx;
+    var cam = Camera;
+
+    // тряска от взрывов
+    var sx = (Math.random() - 0.5) * cam.shake;
+    var sy = (Math.random() - 0.5) * cam.shake;
+
+    ctx.fillStyle = this.bgGrad;
+    ctx.fillRect(0, 0, cam.w, cam.h);
+
+    Starfield.draw(ctx, cam, t);
+
+    // мировой слой: центр экрана + зум, затем сдвиг к камере.
+    // Тряска — в экранных пикселях, чтобы её сила не зависела от зума
+    ctx.save();
+    ctx.translate(cam.w / 2 + sx, cam.h / 2 + sy);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.x, -cam.y);
+    System.draw(ctx, t); // тетрадное поле, солнце, планеты — под игрой
+    Asteroids.draw(ctx, t);
+    Missiles.draw(ctx, t);
+    if (Player.alive) Player.draw(ctx, t);
+    FX.draw(ctx);
+    ctx.restore();
+
+    // виньетка
+    ctx.fillStyle = this.vignette;
+    ctx.fillRect(0, 0, cam.w, cam.h);
+
+    // маркеры-предупреждения у краёв (экранные координаты)
+    Missiles.drawMarkers(ctx, cam, t);
+
+    this.drawJoystick(ctx);
+  },
+
+  drawJoystick: function (ctx) {
+    var t = Input.touch;
+    if (!t.active) return;
+    var dx = t.x - t.ox, dy = t.y - t.oy;
+    var d = Math.hypot(dx, dy);
+    var kx = t.ox, ky = t.oy;
+    if (d > 0.001) {
+      var lim = Math.min(d, t.radius);
+      kx = t.ox + (dx / d) * lim;
+      ky = t.oy + (dy / d) * lim;
+    }
+    ctx.save();
+    ctx.strokeStyle = "rgba(160,190,255,0.45)";
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.arc(t.ox, t.oy, t.radius, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = "rgba(94,230,255,0.3)";
+    ctx.beginPath();
+    ctx.arc(kx, ky, 22, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-10 · ИГРОВОЙ ЦИКЛ, СОСТОЯНИЯ, СТОЛКНОВЕНИЯ, ОЧКИ
+// Состояния: menu -> playing -> dying -> over -> playing...
+// ============================================================
+var Game = {
+  state: "menu",
+  time: 0,
+  dodges: 0,
+  best: 0,
+  dyingT: 0,
+  last: 0,
+  fps: 0,   // кадры в секунду (замер за окно 0.5 с) — показывается в панели
+  fpsN: 0,  // кадров накоплено в текущем окне
+  fpsT: 0,  // длительность текущего окна, с
+  zone: -1, // индекс текущего сектора безопасности (-1 — ещё не показывали)
+  whineT: 0, // кулдаун воя двигателя охотника, с
+
+  init: function () {
+    this.best = parseInt(Store.get("orbit-dodger-best") || "0", 10) || 0;
+    Render.init();
+    Player.reset();
+    Camera.reset(Player.x, Player.y);
+    Asteroids.reset(Player.x, Player.y);
+    UI.syncHud(this);
+    requestAnimationFrame(this.tick.bind(this));
+  },
+
+  start: function () {
+    Player.reset();
+    Missiles.reset();
+    FX.clear();
+    Camera.reset(Player.x, Player.y);
+    Asteroids.reset(Player.x, Player.y);
+    this.time = 0;
+    this.dodges = 0;
+    this.zone = -1;
+    this.state = "playing";
+    UI.showScreen(null);
+    Sfx.ensure();
+    Sfx.resume();
+    Sfx.start();
+  },
+
+  onDodge: function (m, quiet) {
+    this.dodges++;
+    FX.text(m.x, m.y - 24, "УКЛОНЕНИЕ +" + this.dodges, "#9feaff");
+    // тихий режим: ракета взорвалась — взрыв уже прозвучал,
+    // не дублируем сигнал уклонения
+    if (!quiet) {
+      Camera.addShake(2);
+      Sfx.dodge();
+    }
+  },
+
+  hit: function (m) {
+    // ракета при столкновении детонирует и исчезает из мира
+    var idx = Missiles.list.indexOf(m);
+    if (idx !== -1) Missiles.list.splice(idx, 1);
+    FX.explosion(m.x, m.y, "#ff8a5c", 48, 480);
+    FX.explosion((m.x + this.playerX()) / 2, (m.y + this.playerY()) / 2, "#ffd27a", 30, 340);
+    FX.explosion(this.playerX(), this.playerY(), "#8fd8ff", 34, 380);
+    Player.alive = false;
+    Camera.addShake(18);
+    Sfx.explode();
+    this.state = "dying";
+    this.dyingT = 0.9;
+  },
+
+  hitAsteroid: function () {
+    // корабль врезался в камень: гибель, как от торпеды
+    FX.explosion(Player.x, Player.y, "#8fd8ff", 34, 380);
+    FX.explosion(Player.x, Player.y, "#ffd27a", 26, 300);
+    FX.dust(Player.x, Player.y, 14, 170);
+    Player.alive = false;
+    Camera.addShake(16);
+    Sfx.explode();
+    this.state = "dying";
+    this.dyingT = 0.9;
+  },
+
+  crashSun: function () {
+    // корабль влетел в корону солнца: сгорает в пламени
+    FX.explosion(Player.x, Player.y, "#ffca6a", 42, 460);
+    FX.explosion(Player.x, Player.y, "#ff8a5c", 30, 380);
+    FX.dust(Player.x, Player.y, 16, 200);
+    Player.alive = false;
+    Camera.addShake(20);
+    Sfx.explode();
+    this.state = "dying";
+    this.dyingT = 0.9;
+  },
+
+  playerX: function () { return Player.x; },
+  playerY: function () { return Player.y; },
+
+  gameOver: function () {
+    this.state = "over";
+    if (this.dodges > this.best) {
+      this.best = this.dodges;
+      Store.set("orbit-dodger-best", String(this.best));
+    }
+    // статистика в профиль платформы: матчи, суммарные уклонения, время в игре
+    var st = { games: 0, dodges: 0, time: 0 };
+    try { st = JSON.parse(Store.get("orbit-dodger-stats")) || st; } catch (e) { /* нет данных */ }
+    st.games = (st.games || 0) + 1;
+    st.dodges = (st.dodges || 0) + this.dodges;
+    st.time = (st.time || 0) + this.time;
+    Store.set("orbit-dodger-stats", JSON.stringify(st));
+    var coins = parseInt(Store.get("orbit-dodger-coins") || "0", 10) || 0;
+    Store.set("orbit-dodger-coins", String(coins + 5)); // награда за вылет
+    UI.showOver(this);
+  },
+
+  primary: function () {
+    if (this.state === "menu" || this.state === "over") this.start();
+  },
+
+  update: function (dt) {
+    // планеты ходят по орбитам всегда — даже в меню и на финале
+    System.update(dt);
+
+    if (this.state === "playing") {
+      this.time += dt;
+      Player.update(dt);
+      Missiles.update(dt, Player, this.time, true);
+
+      // вой двигателя охотника, когда тот подобрался близко:
+      // не чаще раза в 1.4 с, чтобы не превращался в писк
+      this.whineT -= dt;
+      if (this.whineT <= 0 && Player.alive) {
+        var nearest = Infinity;
+        for (var wh = 0; wh < Missiles.list.length; wh++) {
+          var wm = Missiles.list[wh];
+          nearest = Math.min(nearest, dist2(wm.x, wm.y, Player.x, Player.y));
+        }
+        if (nearest < 620 * 620) {
+          Sfx.hunterWhine();
+          this.whineT = 1.4;
+        }
+      }
+
+      // вход в новый сектор безопасности — уведомление в стиле
+      // космооперы: номер зоны, название, уровень угрозы
+      var zi = System.zoneAt(Player.x, Player.y);
+      if (zi !== this.zone) {
+        this.zone = zi;
+        UI.zoneBanner(CONFIG.system.zones[zi]);
+      }
+
+      // радиус касания — по классу ракеты (у зубра и малой свой r)
+      for (var i = 0; i < Missiles.list.length; i++) {
+        var m = Missiles.list[i];
+        var rr = CONFIG.player.radius + m.r;
+        if (dist2(m.x, m.y, Player.x, Player.y) < rr * rr) {
+          this.hit(m);
+          break;
+        }
+      }
+
+      // звёздная система: корона солнца сжигает; над планетой пролетаем —
+      // гравитация планеты мягко сдувает корабль с траектории
+      if (Player.alive) {
+        var sysHit = System.hit(Player.x, Player.y, CONFIG.player.radius);
+        if (sysHit === "sun") this.crashSun();
+        else if (sysHit) {
+          var pdx = Player.x - sysHit.x, pdy = Player.y - sysHit.y;
+          var pd = Math.hypot(pdx, pdy) || 1;
+          var push = CONFIG.system.planetPush * dt;
+          Player.vx += (pdx / pd) * push;
+          Player.vy += (pdy / pd) * push;
+        }
+      }
+    } else if (this.state === "dying") {
+      this.dyingT -= dt;
+      Missiles.update(dt, Player, this.time, false);
+      if (this.dyingT <= 0) this.gameOver();
+    } else {
+      // меню / финал: мир живёт фоном, новые волны не выходят
+      Player.thrust = Math.max(0, Player.thrust - 6 * dt);
+      var drag = expDecay(CONFIG.player.friction, dt);
+      Player.vx *= drag;
+      Player.vy *= drag;
+      Player.x += Player.vx * dt;
+      Player.y += Player.vy * dt;
+      Missiles.update(dt, Player, this.time, false);
+    }
+
+    Asteroids.update(dt, Player);
+    Camera.update(dt, Player);
+    FX.update(dt);
+  },
+
+  tick: function (ts) {
+    requestAnimationFrame(this.tick.bind(this));
+    var t = ts / 1000;
+    var raw = this.last ? t - this.last : 0.016;
+    var dt = Math.min(0.033, raw);
+    this.last = t;
+    // FPS: скользящее окно 0.5 с, независимо от трюка с dt (там потолок 33 мс)
+    this.fpsT += raw;
+    this.fpsN++;
+    if (this.fpsT >= 0.5) {
+      this.fps = Math.max(1, Math.round(this.fpsN / this.fpsT));
+      this.fpsT = 0;
+      this.fpsN = 0;
+    }
+    this.safeUpdate(dt);
+    Render.frame(t);
+    UI.syncHud(this);
+  },
+
+  // страховка: ошибка в логике больше не обрывает rAF-цикл
+  // (именно так мир "застывал") — пишем в консоль и продолжаем
+  safeUpdate: function (dt) {
+    try {
+      this.update(dt);
+    } catch (e) {
+      if (!this._errT || this.time - this._errT > 1) {
+        this._errT = this.time;
+        console.error("[ИГРА · ЦИКЛ] " + (e && e.message ? e.message : e));
+        if (e && e.stack) console.error(e.stack);
+      }
+    }
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-11 · DOM-ИНТЕРФЕЙС: HUD, ЭКРАНЫ, КНОПКИ
+// ============================================================
+var UI = {
+  el: {},
+  cache: { s: null, t: null, b: null },
+
+  init: function () {
+    var ids = [
+      "hud-score", "hud-time", "hud-best",
+      "screen-start", "screen-over",
+      "btn-start", "btn-restart",
+      "over-score", "over-time", "over-best",
+      "zone-banner", "zb-sec", "zb-text", "zb-tag"
+    ];
+    for (var i = 0; i < ids.length; i++) this.el[ids[i]] = document.getElementById(ids[i]);
+
+    var self = this;
+    this.el["btn-start"].addEventListener("click", function () { Game.start(); });
+    this.el["btn-restart"].addEventListener("click", function () { Game.start(); });
+  },
+
+  // уведомление о входе в зону безопасности (стиль зон EVE Online):
+  // капсула под панелью, цвет зоны подсвечивает точку и уровень сек
+  zoneBanner: function (z) {
+    var b = this.el["zone-banner"];
+    if (!b) return;
+    this.el["zb-sec"].textContent = z.sec;
+    this.el["zb-text"].textContent = z.name;
+    this.el["zb-tag"].textContent = z.tag;
+    b.style.color = z.color;
+    b.classList.remove("hidden");
+    // перезапуск показа: снять класс, вернуть в следующем кадре
+    b.classList.remove("show");
+    var self = this;
+    if (this._zbT1) clearTimeout(this._zbT1);
+    if (this._zbT2) clearTimeout(this._zbT2);
+    this._zbT1 = setTimeout(function () { b.classList.add("show"); }, 30);
+    this._zbT2 = setTimeout(function () { b.classList.remove("show"); }, 3200);
+  },
+
+  // Enter/Space из Input или клик по кнопкам
+  primary: function () {
+    Game.primary();
+  },
+
+  showScreen: function (name) {
+    this.el["screen-start"].classList.toggle("hidden", name !== "start");
+    this.el["screen-over"].classList.toggle("hidden", name !== "over");
+  },
+
+  showOver: function (g) {
+    this.el["over-score"].textContent = String(g.dodges);
+    this.el["over-time"].textContent = fmtTime(g.time);
+    this.el["over-best"].textContent = String(g.best);
+    this.showScreen("over");
+  },
+
+  syncHud: function (g) {
+    Panel.tick();
+    if (g.dodges !== this.cache.s) {
+      this.cache.s = g.dodges;
+      this.el["hud-score"].textContent = String(g.dodges);
+    }
+    var ts = fmtTime(g.time);
+    if (ts !== this.cache.t) {
+      this.cache.t = ts;
+      this.el["hud-time"].textContent = ts;
+    }
+    if (g.best !== this.cache.b) {
+      this.cache.b = g.best;
+      this.el["hud-best"].textContent = String(g.best);
+    }
+  }
+};
+
+// ============================================================
+// РАЗДЕЛ J-12 · СТАРТ
+// ============================================================
+
+// диагностический лог: любая ошибка в игре — в консоль браузера
+// (F12 -> Console). Ловим даже ошибки внутри rAF, которые иначе
+// молча обрывают кадр и "замораживают" мир.
+window.onerror = function (msg, src, line, col, err) {
+  var stack = err && err.stack ? "\n" + err.stack : "";
+  console.error("[ИГРА · ОШИБКА] " + msg + " (" + (src || "?") + ":" + line + ":" + col + ")" + stack);
+  return false;
+};
+
+UI.init();
+Panel.init();
+System.init();
+Game.init();
+
+// звук просыпается по первому действию игрока
+window.addEventListener("pointerdown", function () { Sfx.ensure(); Sfx.resume(); });
+window.addEventListener("keydown", function () { Sfx.ensure(); Sfx.resume(); });
+
+</script>
+</body>
+</html>
